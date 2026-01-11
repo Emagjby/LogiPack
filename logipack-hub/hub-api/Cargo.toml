@@ -1,0 +1,23 @@
+[package]
+name = "hub-api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.7"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tower = "0.5"
+tower-http = { version = "0.5", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+core-domain = { path = "../../logipack-core/crates/core-domain" }
+core-application = { path = "../../logipack-core/crates/core-application" }
+core-data = { path = "../../logipack-core/crates/core-data" }
+core-eventstore = { path = "../../logipack-core/crates/core-eventstore" }
+core-contracts = { path = "../../logipack-core/crates/core-contracts" }
+
+[dev-dependencies]
+http-body-util = "0.1"

@@ -1,1 +1,22 @@
+# Local scratch / scaffolding
 temp/
+
+# Rust
+/target/
+**/target/
+Cargo.lock
+
+# Node
+**/node_modules/
+
+# Common dumps / artifacts
+**/*.log
+**/*.dump
+**/*.sql
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*.tmp
+**/*.bak
+**/*.swp
+.DS_Store
