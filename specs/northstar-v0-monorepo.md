@@ -12,7 +12,7 @@ Stand up a clean monorepo skeleton that compiles and runs with minimal “hello 
 - No real UI flows.
 
 ## Context Boundaries (Must Hold)
-- `logicore/*` crates contain engine logic only and never import Hub.
+- `logipack-core/*` crates contain engine logic only and never import Hub.
 - `logipack-hub/hub-api` holds HTTP concerns (Axum, auth middleware, DTO mapping).
 - `logipack-hub/hub-web` is SvelteKit and talks to the API only.
 
@@ -28,7 +28,7 @@ Stand up a clean monorepo skeleton that compiles and runs with minimal “hello 
 ### Phase 1 — Monorepo Layout + Tooling Skeleton
 **Achievements**
 - Repo layout follows `temp/INSTRUCTIONS.md`:
-  - `logicore/crates/*`
+  - `logipack-core/crates/*`
   - `logipack-hub/hub-api`
   - `logipack-hub/hub-web`
 - Root workspace `Cargo.toml` exists.

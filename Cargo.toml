@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+
+members = [
+  "logipack-core/crates/core-domain",
+  "logipack-core/crates/core-application",
+  "logipack-core/crates/core-data",
+  "logipack-core/crates/core-eventstore",
+  "logipack-core/crates/core-contracts",
+  "logipack-hub/hub-api",
+]
