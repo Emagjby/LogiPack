@@ -7,9 +7,9 @@ help:
 	@echo "  test      - cargo test --workspace"
 	@echo "  fmt       - cargo fmt --all"
 	@echo "  clippy    - cargo clippy --workspace --all-targets --all-features"
-	@echo "  dev-api   - run hub API (phase 2+)"
-	@echo "  dev-web   - run SvelteKit dev server (phase 3+)"
-	@echo "  build-web - build SvelteKit (phase 3+)"
+	@echo "  dev-api   - run hub API"
+	@echo "  dev-web   - run SvelteKit dev server"
+	@echo "  build-web - build SvelteKit"
 
 test:
 	cargo test --workspace
