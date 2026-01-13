@@ -74,31 +74,6 @@ This release is engine-first: it should be possible to build correct workflows l
 - Unit tests that compile the SeaORM entities and repository layer modules.
 - Validation unit tests in core (e.g., required fields) if implemented at this stage.
 
-```
-final tree:
-
-core-data/
-├── src/
-│   ├── lib.rs
-│   ├── entity/
-│   │   ├── mod.rs
-│   │   ├── users.rs
-│   │   ├── roles.rs
-│   │   ├── user_roles.rs
-│   │   ├── employees.rs
-│   │   ├── offices.rs
-│   │   ├── employee_offices.rs
-│   │   ├── clients.rs
-│   │   ├── shipments.rs
-│   │   └── shipment_status_history.rs
-│   └── repository/
-│       └── mod.rs
-└── migration/
-    ├── src/
-    │   ├── lib.rs
-    │   └── m2026_01_XX_init.rs
-```
-
 ### Phase 3 — Strata Event Store Schema + Adapter
 
 **Achievements**

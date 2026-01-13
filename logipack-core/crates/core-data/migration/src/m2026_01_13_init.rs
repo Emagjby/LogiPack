@@ -1,17 +1,13 @@
 use sea_orm_migration::prelude::*;
 
+#[derive(DeriveMigrationName)]
 pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Enable uuid generation extension for PostgreSQL
-        manager
-            .create_extension(Extension::create()
-                .name("pgcrypto")
-                .to_owned())
-            .await()
-            .ok();
+        // Note: Extension enabling is DB-specific (Postgres) and isn't
+        // available via `SchemaManager` in this crate version.
 
         // Users
         manager
@@ -19,23 +15,14 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Users::Table)
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(Users::Id)
-                            .uuid()
-                            .not_null()
-                            .primary_key(),
-                    )
+                    .col(ColumnDef::new(Users::Id).uuid().not_null().primary_key())
                     .col(
                         ColumnDef::new(Users::Email)
                             .string()
                             .not_null()
                             .unique_key(),
                     )
-                    .col(
-                        ColumnDef::new(Users::PasswordHash)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(Users::PasswordHash).string().not_null())
                     .col(
                         ColumnDef::new(Users::CreatedAt)
                             .timestamp_with_time_zone()
@@ -52,18 +39,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Roles::Table)
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(Roles::Id)
-                            .uuid()
-                            .not_null()
-                            .primary_key(),
-                    )
-                    .col(
-                        ColumnDef::new(Roles::Name)
-                            .string()
-                            .not_null()
-                            .unique_key(),
-                    )
+                    .col(ColumnDef::new(Roles::Id).uuid().not_null().primary_key())
+                    .col(ColumnDef::new(Roles::Name).string().not_null().unique_key())
                     .to_owned(),
             )
             .await?;
@@ -74,16 +51,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(UserRoles::Table)
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(UserRoles::UserId)
-                            .uuid()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(UserRoles::RoleId)
-                            .uuid()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(UserRoles::UserId).uuid().not_null())
+                    .col(ColumnDef::new(UserRoles::RoleId).uuid().not_null())
                     .primary_key(
                         Index::create()
                             .col(UserRoles::UserId)
@@ -125,11 +94,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .unique_key(),
                     )
-                    .col(
-                        ColumnDef::new(Employees::FullName)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(Employees::FullName).string().not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_employees_user")
@@ -147,27 +112,10 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Offices::Table)
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(Offices::Id)
-                            .uuid()
-                            .not_null()
-                            .primary_key(),
-                    )
-                    .col(
-                        ColumnDef::new(Offices::Name)
-                            .string()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Offices::City)
-                            .string()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Offices::Address)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(Offices::Id).uuid().not_null().primary_key())
+                    .col(ColumnDef::new(Offices::Name).string().not_null())
+                    .col(ColumnDef::new(Offices::City).string().not_null())
+                    .col(ColumnDef::new(Offices::Address).string().not_null())
                     .to_owned(),
             )
             .await?;
@@ -183,11 +131,7 @@ impl MigrationTrait for Migration {
                             .uuid()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(EmployeeOffices::OfficeId)
-                            .uuid()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(EmployeeOffices::OfficeId).uuid().not_null())
                     .primary_key(
                         Index::create()
                             .col(EmployeeOffices::EmployeeId)
@@ -217,84 +161,56 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Clients::Table)
                     .if_not_exists()
+                    .col(ColumnDef::new(Clients::Id).uuid().not_null().primary_key())
+                    .col(ColumnDef::new(Clients::Name).string().not_null())
+                    .col(ColumnDef::new(Clients::Phone).string().null())
+                    .col(ColumnDef::new(Clients::Email).string().null())
+                    .to_owned(),
+            )
+            .await?;
+
+        // Shipments
+        manager
+            .create_table(
+                Table::create()
+                    .table(Shipments::Table)
+                    .if_not_exists()
                     .col(
-                        ColumnDef::new(Clients::Id)
+                        ColumnDef::new(Shipments::Id)
                             .uuid()
                             .not_null()
                             .primary_key(),
                     )
+                    .col(ColumnDef::new(Shipments::ClientId).uuid().not_null())
+                    .col(ColumnDef::new(Shipments::CurrentStatus).string().not_null())
+                    .col(ColumnDef::new(Shipments::CurrentOfficeId).uuid().null())
                     .col(
-                        ColumnDef::new(Clients::Name)
-                            .string()
-                            .not_null(),
+                        ColumnDef::new(Shipments::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
                     )
                     .col(
-                        ColumnDef::new(Clients::Phone)
-                            .string()
-                            .null(),
+                        ColumnDef::new(Shipments::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
                     )
-                    .col(
-                        ColumnDef::new(Clients::Email)
-                            .string()
-                            .null(),
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_shipments_client")
+                            .from(Shipments::Table, Shipments::ClientId)
+                            .to(Clients::Table, Clients::Id)
+                            .on_delete(ForeignKeyAction::Restrict),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_shipments_current_office")
+                            .from(Shipments::Table, Shipments::CurrentOfficeId)
+                            .to(Offices::Table, Offices::Id)
+                            .on_delete(ForeignKeyAction::SetNull),
                     )
                     .to_owned(),
-            )
-            .await?;
-                
-        // Shipments
-        manager.create_table(
-            Table::create()
-                .table(Shipments::Table)
-                .if_not_exists()
-                .col(
-                    ColumnDef::new(Shipments::Id)
-                        .uuid()
-                        .not_null()
-                        .primary_key(),
-                )
-                .col(
-                    ColumnDef::new(Shipments::ClientId)
-                        .uuid()
-                        .not_null(),
-                )
-                .col(
-                    ColumnDef::new(Shipments::CurrentStatus)
-                        .string()
-                        .not_null(),
-                )
-                .col(
-                    ColumnDef::new(Shipments::CurrentOfficeId)
-                        .uuid()
-                        .null(),
-                )
-                .col(
-                    ColumnDef::new(Shipments::CreatedAt)
-                        .timestamp_with_time_zone()
-                        .not_null()
-                        .default(Expr::current_timestamp()),
-                )
-                .col(
-                    ColumnDef::new(Shipments::UpdatedAt)
-                        .timestamp_with_time_zone()
-                        .not_null()
-                        .default(Expr::current_timestamp()),
-                )
-                .foreign_key(
-                    ForeignKey::create()
-                        .name("fk_shipments_client")
-                        .from(Shipments::Table, Shipments::ClientId)
-                        .to(Clients::Table, Clients::Id)
-                        .on_delete(ForeignKeyAction::Restrict),
-                )
-                .foreign_key(
-                    ForeignKey::create()
-                        .name("fk_shipments_current_office")
-                        .from(Shipments::Table, Shipments::CurrentOfficeId)
-                        .to(Offices::Table, Offices::Id)
-                        .on_delete(ForeignKeyAction::SetNull),
-                )
-                .to_owned(),
             )
             .await?;
 
@@ -362,29 +278,34 @@ impl MigrationTrait for Migration {
                             .uuid()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(ShipmentStatusHistory::Notes)
-                            .string()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(ShipmentStatusHistory::Notes).string().null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_status_history_shipment")
-                            .from(ShipmentStatusHistory::Table, ShipmentStatusHistory::ShipmentId)
+                            .from(
+                                ShipmentStatusHistory::Table,
+                                ShipmentStatusHistory::ShipmentId,
+                            )
                             .to(Shipments::Table, Shipments::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_status_history_actor_user")
-                            .from(ShipmentStatusHistory::Table, ShipmentStatusHistory::ActorUserId)
+                            .from(
+                                ShipmentStatusHistory::Table,
+                                ShipmentStatusHistory::ActorUserId,
+                            )
                             .to(Users::Table, Users::Id)
                             .on_delete(ForeignKeyAction::SetNull),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_status_history_office")
-                            .from(ShipmentStatusHistory::Table, ShipmentStatusHistory::OfficeId)
+                            .from(
+                                ShipmentStatusHistory::Table,
+                                ShipmentStatusHistory::OfficeId,
+                            )
                             .to(Offices::Table, Offices::Id)
                             .on_delete(ForeignKeyAction::SetNull),
                     )
