@@ -23,9 +23,7 @@ impl RelationTrait for Relation {
         match self {
             Self::EmployeeOffices => Entity::has_many(super::employee_offices::Entity).into(),
             Self::Shipments => Entity::has_many(super::shipments::Entity).into(),
-            Self::StatusHistory => {
-                Entity::has_many(super::shipment_status_history::Entity).into()
-            }
+            Self::StatusHistory => Entity::has_many(super::shipment_status_history::Entity).into(),
         }
     }
 }

@@ -24,9 +24,7 @@ impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
             Self::Employee => Entity::has_one(super::employees::Entity).into(),
-            Self::StatusHistory => {
-                Entity::has_many(super::shipment_status_history::Entity).into()
-            }
+            Self::StatusHistory => Entity::has_many(super::shipment_status_history::Entity).into(),
             Self::UserRoles => Entity::has_many(super::user_roles::Entity).into(),
         }
     }
