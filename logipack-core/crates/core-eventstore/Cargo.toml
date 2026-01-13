@@ -4,3 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+sea-orm = { version = "1", features = ["macros", "with-uuid", "with-chrono"] }
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4" }
+strata-rs = "*"
+
+[dev-dependencies]
+core-eventstore-migration = { path = "migration" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
