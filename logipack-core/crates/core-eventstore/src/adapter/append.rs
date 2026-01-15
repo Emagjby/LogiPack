@@ -4,7 +4,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::hashing::{hash_strata_value, HashedPackage};
+use crate::hashing::{HashedPackage, hash_strata_value};
 use crate::schema::{packages, streams};
 
 #[derive(Debug)]
