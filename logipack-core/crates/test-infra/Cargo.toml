@@ -1,0 +1,13 @@
+[package]
+name = "test-infra"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+sea-orm = { version = "1", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
+uuid = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+core-eventstore-migration = { path = "../core-eventstore/migration" }
+core-data-migration = { path = "../core-data/migration" }

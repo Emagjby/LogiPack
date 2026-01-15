@@ -12,3 +12,4 @@ strata-rs = "0.4.3"
 [dev-dependencies]
 core-eventstore-migration = { path = "migration" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+test-infra = { path = "../test-infra" }

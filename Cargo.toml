@@ -9,5 +9,6 @@ members = [
   "logipack-core/crates/core-eventstore",
   "logipack-core/crates/core-eventstore/migration",
   "logipack-core/crates/core-contracts",
+  "logipack-core/crates/test-infra",
   "logipack-hub/hub-api",
 ]
