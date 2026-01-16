@@ -1,5 +1,5 @@
 use crate::config::Config;
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 
 use crate::routes;
 
