@@ -10,13 +10,14 @@ async fn main() {
         .init();
 
     let cfg = Config::from_env();
+
     let listener = tokio::net::TcpListener::bind(cfg.bind_addr())
         .await
         .expect("bind hub-api listener");
 
     tracing::info!(addr = %listener.local_addr().unwrap(), "hub-api listening");
 
-    axum::serve(listener, app::router())
+    axum::serve(listener, app::router(cfg))
         .await
         .expect("serve hub-api");
 }
