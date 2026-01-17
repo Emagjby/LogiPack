@@ -39,6 +39,14 @@ async fn run_migrations_once() {
             CoreDataMigrator::up(&db, None)
                 .await
                 .expect("core-data migrations failed");
+
+            // Eventstore migrations contain Postgres DDL that cannot run inside a transaction.
+            // SeaORM runs Postgres migrations inside a transaction by default; when Postgres
+            // rejects one statement, the transaction becomes aborted (25P02), and subsequent
+            // statements all fail. Core-data migrations stay transactional for safety; only the
+            // eventstore migrator is executed non-transactionally.
+            // Run via the migrator so it stays idempotent (pending-only) and
+            // records entries in the eventstore migration history table.
             EventstoreMigrator::up(&db, None)
                 .await
                 .expect("eventstore migrations failed");

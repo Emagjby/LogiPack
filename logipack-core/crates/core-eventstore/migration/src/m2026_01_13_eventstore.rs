@@ -60,10 +60,16 @@ impl MigrationTrait for Migration {
             .await?;
 
         // Constrains
+        // Indexes are re-runnable: use `IF EXISTS` / `IF NOT EXISTS` to keep CI and
+        // local test runs deterministic when the database is reused.
         manager
-            .drop_index(Index::drop().name("ux_packages_stream_seq").to_owned())
-            .await
-            .ok();
+            .drop_index(
+                Index::drop()
+                    .name("ux_packages_stream_seq")
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await?;
         manager
             .create_index(
                 Index::create()
@@ -72,14 +78,19 @@ impl MigrationTrait for Migration {
                     .col(Packages::StreamId)
                     .col(Packages::Seq)
                     .unique()
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
         manager
-            .drop_index(Index::drop().name("ix_packages_stream_seq").to_owned())
-            .await
-            .ok();
+            .drop_index(
+                Index::drop()
+                    .name("ix_packages_stream_seq")
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await?;
         manager
             .create_index(
                 Index::create()
@@ -87,14 +98,19 @@ impl MigrationTrait for Migration {
                     .table(Packages::Table)
                     .col(Packages::StreamId)
                     .col(Packages::Seq)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
         manager
-            .drop_index(Index::drop().name("ix_packages_prev_hash").to_owned())
-            .await
-            .ok();
+            .drop_index(
+                Index::drop()
+                    .name("ix_packages_prev_hash")
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await?;
         manager
             .create_index(
                 Index::create()
@@ -102,6 +118,7 @@ impl MigrationTrait for Migration {
                     .table(Packages::Table)
                     .col(Packages::StreamId)
                     .col(Packages::PrevHash)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;

@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 sea-orm = { version = "1", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
+sea-orm-migration = { version = "1", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 uuid = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
