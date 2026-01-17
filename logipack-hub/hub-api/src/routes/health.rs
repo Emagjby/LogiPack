@@ -1,11 +1,6 @@
 use axum::Json;
-use serde::Serialize;
+use serde_json::json;
 
-#[derive(Debug, Serialize)]
-pub struct HealthResponse {
-    pub status: &'static str,
-}
-
-pub async fn get_health() -> Json<HealthResponse> {
-    Json(HealthResponse { status: "ok" })
+pub async fn get_health() -> Json<serde_json::Value> {
+    Json(json!({"status": "ok"}))
 }

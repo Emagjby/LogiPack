@@ -12,12 +12,16 @@ tower = "0.5"
 tower-http = { version = "0.5", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
 
 core-domain = { path = "../../logipack-core/crates/core-domain" }
 core-application = { path = "../../logipack-core/crates/core-application" }
 core-data = { path = "../../logipack-core/crates/core-data" }
 core-eventstore = { path = "../../logipack-core/crates/core-eventstore" }
 core-contracts = { path = "../../logipack-core/crates/core-contracts" }
+sea-orm = { version = "1.1.19", features = ["sqlx-postgres", "sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
+uuid = "1.19.0"
 
 [dev-dependencies]
 http-body-util = "0.1"
+test-infra = { path = "../../logipack-core/crates/test-infra" }

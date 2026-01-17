@@ -1,4 +1,4 @@
-use hub_api::{app, config::Config};
+use hub_api::{app, config::Config, state::AppState};
 
 #[tokio::main]
 async fn main() {
@@ -10,6 +10,11 @@ async fn main() {
         .init();
 
     let cfg = Config::from_env();
+    let db_url = std::env::var("LOGIPACK_DATABASE_URL").expect("LOGIPACK_DATABASE_URL must be set");
+    let db = sea_orm::Database::connect(&db_url)
+        .await
+        .expect("connect hub-api database");
+    let state = AppState { db };
 
     let listener = tokio::net::TcpListener::bind(cfg.bind_addr())
         .await
@@ -17,7 +22,7 @@ async fn main() {
 
     tracing::info!(addr = %listener.local_addr().unwrap(), "hub-api listening");
 
-    axum::serve(listener, app::router(cfg))
+    axum::serve(listener, app::router(cfg, state))
         .await
         .expect("serve hub-api");
 }

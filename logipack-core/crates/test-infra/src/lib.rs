@@ -1,7 +1,8 @@
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use tokio::sync::OnceCell;
 
-use core_eventstore_migration::{Migrator as EventstoreMigrator, MigratorTrait};
+use core_data_migration::{Migrator as CoreDataMigrator, MigratorTrait};
+use core_eventstore_migration::Migrator as EventstoreMigrator;
 
 static MIGRATIONS: OnceCell<()> = OnceCell::const_new();
 
@@ -11,7 +12,7 @@ fn test_database_url() -> String {
 
     assert!(
         db_url.contains("test"),
-        "Refusing to run integration tests against non-test database"
+        "Refusing to run integration tests against non-test database. DATABASE_URL={db_url}"
     );
 
     db_url
@@ -31,8 +32,16 @@ async fn establish_connection() -> Result<DatabaseConnection, DbErr> {
 async fn run_migrations_once() {
     MIGRATIONS
         .get_or_init(|| async {
-            let db = establish_connection().await.unwrap();
-            EventstoreMigrator::up(&db, None).await.unwrap();
+            let db = establish_connection()
+                .await
+                .expect("failed to connect to test database");
+
+            CoreDataMigrator::up(&db, None)
+                .await
+                .expect("core-data migrations failed");
+            EventstoreMigrator::up(&db, None)
+                .await
+                .expect("eventstore migrations failed");
         })
         .await;
 }
@@ -42,5 +51,7 @@ async fn run_migrations_once() {
 /// Migrations are guaranteed to run exactly once per test run.
 pub async fn test_db() -> DatabaseConnection {
     run_migrations_once().await;
-    establish_connection().await.unwrap()
+    establish_connection()
+        .await
+        .expect("failed to establish test database connection")
 }

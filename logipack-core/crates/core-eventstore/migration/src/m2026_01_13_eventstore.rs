@@ -61,6 +61,10 @@ impl MigrationTrait for Migration {
 
         // Constrains
         manager
+            .drop_index(Index::drop().name("ux_packages_stream_seq").to_owned())
+            .await
+            .ok();
+        manager
             .create_index(
                 Index::create()
                     .name("ux_packages_stream_seq")
@@ -73,6 +77,10 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .drop_index(Index::drop().name("ix_packages_stream_seq").to_owned())
+            .await
+            .ok();
+        manager
             .create_index(
                 Index::create()
                     .name("ix_packages_stream_seq")
@@ -83,6 +91,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .drop_index(Index::drop().name("ix_packages_prev_hash").to_owned())
+            .await
+            .ok();
         manager
             .create_index(
                 Index::create()
