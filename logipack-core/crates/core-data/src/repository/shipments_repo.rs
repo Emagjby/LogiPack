@@ -1,9 +1,16 @@
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait};
+use thiserror::Error;
 use uuid::Uuid;
 
 use crate::entity::{shipment_status_history, shipments};
 use core_domain::shipment::ShipmentStatus;
+
+#[derive(Debug, Error)]
+pub enum ShipmentSnapshotError {
+    #[error("db error: {0}")]
+    DbError(#[from] DbErr),
+}
 
 pub struct ShipmentsRepo;
 
@@ -15,7 +22,7 @@ impl ShipmentsRepo {
         client_id: Uuid,
         status: ShipmentStatus,
         office_id: Option<Uuid>,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), ShipmentSnapshotError> {
         let model = shipments::ActiveModel {
             id: Set(shipment_id),
             client_id: Set(client_id),
@@ -38,7 +45,7 @@ impl ShipmentsRepo {
         actor_user_id: Option<Uuid>,
         office_id: Option<Uuid>,
         notes: Option<String>,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), ShipmentSnapshotError> {
         let model = shipment_status_history::ActiveModel {
             id: Set(0), // auto
             shipment_id: Set(shipment_id),
@@ -60,7 +67,7 @@ impl ShipmentsRepo {
         shipment_id: Uuid,
         new_status: ShipmentStatus,
         new_office_id: Option<Uuid>,
-    ) -> Result<(), DbErr> {
+    ) -> Result<(), ShipmentSnapshotError> {
         let mut model: shipments::ActiveModel = shipments::Entity::find_by_id(shipment_id)
             .one(db)
             .await?
@@ -83,10 +90,10 @@ impl ShipmentsRepo {
     pub async fn get_snapshot(
         db: &DatabaseConnection,
         shipment_id: Uuid,
-    ) -> Result<shipments::Model, DbErr> {
-        shipments::Entity::find_by_id(shipment_id)
+    ) -> Result<shipments::Model, ShipmentSnapshotError> {
+        Ok(shipments::Entity::find_by_id(shipment_id)
             .one(db)
             .await?
-            .ok_or(DbErr::RecordNotFound("shipment not found".into()))
+            .ok_or(DbErr::RecordNotFound("shipment not found".into()))?)
     }
 }

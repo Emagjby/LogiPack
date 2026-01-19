@@ -16,6 +16,22 @@ impl ShipmentStatus {
     }
 }
 
+impl std::str::FromStr for ShipmentStatus {
+    type Err = ();
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "NEW" => Ok(ShipmentStatus::New),
+            "ACCEPTED" => Ok(ShipmentStatus::Accepted),
+            "PROCESSED" => Ok(ShipmentStatus::Processed),
+            "IN_TRANSIT" => Ok(ShipmentStatus::InTransit),
+            "DELIVERED" => Ok(ShipmentStatus::Delivered),
+            "CANCELLED" => Ok(ShipmentStatus::Cancelled),
+            _ => Err(()),
+        }
+    }
+}
+
 impl fmt::Display for ShipmentStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let status_str = match self {

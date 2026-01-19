@@ -2,16 +2,20 @@ use sea_orm::{
     ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait, QueryFilter,
     QuerySelect, TransactionTrait,
 };
+use thiserror::Error;
 use uuid::Uuid;
 
 use crate::hashing::{HashedPackage, hash_strata_value};
 use crate::schema::{packages, streams};
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AppendError {
+    #[error("stream not found")]
     StreamNotFound,
+    #[error("encoding error: {0:?}")]
     Encode(strata::error::EncodeError),
-    Db(DbErr),
+    #[error("db error: {0}")]
+    Db(sea_orm::DbErr),
 }
 
 impl From<DbErr> for AppendError {

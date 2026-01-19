@@ -8,6 +8,7 @@ sea-orm = { version = "1", features = ["macros", "with-uuid", "with-chrono"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4" }
 strata-rs = "0.4.3"
+thiserror = "2.0.18"
 
 [dev-dependencies]
 core-eventstore-migration = { path = "migration" }

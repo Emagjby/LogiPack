@@ -8,6 +8,7 @@ sea-orm = { version = "1", features = ["runtime-tokio-rustls", "sqlx-postgres"] 
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 core-domain = { path = "../core-domain" }
+thiserror = "2.0.18"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
