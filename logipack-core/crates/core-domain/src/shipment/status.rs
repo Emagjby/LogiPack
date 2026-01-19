@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShipmentStatus {
     New,
@@ -11,6 +13,20 @@ pub enum ShipmentStatus {
 impl ShipmentStatus {
     pub fn is_terminal(self) -> bool {
         matches!(self, ShipmentStatus::Delivered | ShipmentStatus::Cancelled)
+    }
+}
+
+impl fmt::Display for ShipmentStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let status_str = match self {
+            ShipmentStatus::New => "NEW",
+            ShipmentStatus::Accepted => "ACCEPTED",
+            ShipmentStatus::Processed => "PROCESSED",
+            ShipmentStatus::InTransit => "IN_TRANSIT",
+            ShipmentStatus::Delivered => "DELIVERED",
+            ShipmentStatus::Cancelled => "CANCELLED",
+        };
+        write!(f, "{}", status_str)
     }
 }
 

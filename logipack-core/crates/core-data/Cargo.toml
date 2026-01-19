@@ -7,3 +7,9 @@ edition = "2024"
 sea-orm = { version = "1", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
+core-domain = { path = "../core-domain" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+test-infra = { path = "../test-infra" }
+core-domain = { path = "../core-domain" }
