@@ -627,3 +627,145 @@ async fn timeline_values_are_decodable() {
         let _ = item.value;
     }
 }
+
+#[tokio::test]
+async fn forbidden_change_does_not_append_events() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let office1 = seed_office(&db).await;
+    let office2 = seed_office(&db).await;
+    let client = seed_client(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let shipment_id = create_shipment(
+        &db,
+        &admin,
+        CreateShipment {
+            client_id: client,
+            current_office_id: Some(office1),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    let employee = employee_actor(&db, vec![office1]).await;
+
+    let _ = change_status(
+        &db,
+        &employee,
+        ChangeStatus {
+            shipment_id,
+            to_status: ShipmentStatus::InTransit,
+            to_office_id: Some(office2),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap_err();
+
+    let packages = core_eventstore::schema::packages::Entity::find()
+        .filter(core_eventstore::schema::packages::Column::StreamId.eq(shipment_id))
+        .all(&db)
+        .await
+        .unwrap();
+
+    assert_eq!(packages.len(), 2);
+}
+
+#[tokio::test]
+async fn forbidden_change_does_not_mutate_snapshot() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let office1 = seed_office(&db).await;
+    let office2 = seed_office(&db).await;
+    let client = seed_client(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let shipment_id = create_shipment(
+        &db,
+        &admin,
+        CreateShipment {
+            client_id: client,
+            current_office_id: Some(office1),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    let employee = employee_actor(&db, vec![office1]).await;
+
+    let _ = change_status(
+        &db,
+        &employee,
+        ChangeStatus {
+            shipment_id,
+            to_status: ShipmentStatus::InTransit,
+            to_office_id: Some(office2),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap_err();
+
+    let snap = core_data::entity::shipments::Entity::find_by_id(shipment_id)
+        .one(&db)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(snap.current_status, "NEW");
+    assert_eq!(snap.current_office_id, Some(office1));
+}
+
+#[tokio::test]
+async fn forbidden_change_does_not_write_history() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let office1 = seed_office(&db).await;
+    let office2 = seed_office(&db).await;
+    let client = seed_client(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let shipment_id = create_shipment(
+        &db,
+        &admin,
+        CreateShipment {
+            client_id: client,
+            current_office_id: Some(office1),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    let employee = employee_actor(&db, vec![office1]).await;
+
+    let _ = change_status(
+        &db,
+        &employee,
+        ChangeStatus {
+            shipment_id,
+            to_status: ShipmentStatus::InTransit,
+            to_office_id: Some(office2),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap_err();
+
+    let history = core_data::entity::shipment_status_history::Entity::find()
+        .filter(core_data::entity::shipment_status_history::Column::ShipmentId.eq(shipment_id))
+        .all(&db)
+        .await
+        .unwrap();
+
+    assert_eq!(history.len(), 1);
+}
