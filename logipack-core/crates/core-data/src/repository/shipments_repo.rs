@@ -1,4 +1,4 @@
-use sea_orm::ActiveValue::Set;
+use sea_orm::ActiveValue::{self, Set};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait};
 use thiserror::Error;
 use uuid::Uuid;
@@ -47,7 +47,7 @@ impl ShipmentsRepo {
         notes: Option<String>,
     ) -> Result<(), ShipmentSnapshotError> {
         let model = shipment_status_history::ActiveModel {
-            id: Set(0), // auto
+            id: ActiveValue::NotSet,
             shipment_id: Set(shipment_id),
             from_status: Set(from_status.map(|s| s.to_string())),
             to_status: Set(to_status.to_string()),

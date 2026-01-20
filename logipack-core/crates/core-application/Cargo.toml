@@ -13,3 +13,8 @@ core-domain = { path = "../core-domain" }
 core-data = { path = "../core-data" }
 core-eventstore = { path = "../core-eventstore" }
 strata-rs = "0.4.3"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+test-infra = { path = "../test-infra" }

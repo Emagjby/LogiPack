@@ -2,6 +2,7 @@ use sea_orm::{
     ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait, QueryFilter,
     QuerySelect, TransactionTrait,
 };
+use strata::{list, string};
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -43,9 +44,9 @@ pub async fn append_package(
     event_type: &str,
     value: &strata::value::Value,
 ) -> Result<HashedPackage, AppendError> {
-    // Pre-compute hash + canonical bytes.
-    // This is pure and safe to do before the transaction.
-    let hashed = hash_strata_value(value)?;
+    let scoped = list![string!(stream_id.to_string()), value.clone()];
+
+    let hashed = hash_strata_value(&scoped)?;
 
     let txn = db.begin().await?;
 

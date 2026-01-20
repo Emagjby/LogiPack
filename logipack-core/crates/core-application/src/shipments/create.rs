@@ -2,6 +2,7 @@ use chrono::Utc;
 use core_data::repository::shipments_repo::ShipmentsRepo;
 use core_domain::shipment::ShipmentStatus;
 use core_eventstore::adapter::events::append_event;
+use core_eventstore::adapter::streams::ensure_stream;
 use sea_orm::DatabaseConnection;
 use thiserror::Error;
 
@@ -27,6 +28,8 @@ pub enum CreateShipmentError {
     DbError(#[from] sea_orm::DbErr),
     #[error("eventstore error: {0}")]
     EventstoreError(#[from] core_eventstore::adapter::append::AppendError),
+    #[error("stream error: {0}")]
+    EnsureStreamError(#[from] core_eventstore::adapter::streams::EnsureStreamError),
     #[error("create shipment snapshot error: {0}")]
     SnapshotError(#[from] core_data::repository::shipments_repo::ShipmentSnapshotError),
 }
@@ -61,6 +64,7 @@ pub async fn create_shipment(
     )
     .await?;
 
+    // history
     ShipmentsRepo::insert_history(
         db,
         shipment_id,
@@ -71,6 +75,9 @@ pub async fn create_shipment(
         input.notes.clone(),
     )
     .await?;
+
+    // ensure stream
+    ensure_stream(db, shipment_id, "shipment").await?;
 
     // eventstore
     append_event(db, shipment_id, "shipment", &map! {}).await?;
