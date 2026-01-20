@@ -1,6 +1,6 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ShipmentListItem {
     pub id: String,
     pub client_id: String,
@@ -10,7 +10,7 @@ pub struct ShipmentListItem {
     pub updated_at: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ShipmentDetail {
     pub id: String,
     pub client: ClientDto,
@@ -20,7 +20,7 @@ pub struct ShipmentDetail {
     pub updated_at: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ClientDto {
     pub id: String,
     pub name: String,
@@ -28,7 +28,7 @@ pub struct ClientDto {
     pub phone: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OfficeDto {
     pub id: String,
     pub name: String,
