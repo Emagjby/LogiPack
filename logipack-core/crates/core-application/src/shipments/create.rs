@@ -1,6 +1,7 @@
 use chrono::Utc;
 use core_data::repository::shipments_repo::ShipmentsRepo;
 use core_domain::shipment::ShipmentStatus;
+use core_eventstore::adapter::events::append_event;
 use sea_orm::DatabaseConnection;
 use thiserror::Error;
 
@@ -72,8 +73,7 @@ pub async fn create_shipment(
     .await?;
 
     // eventstore
-    core_eventstore::adapter::shipments::append_shipment_created(db, shipment_id, "shipment")
-        .await?;
+    append_event(db, shipment_id, "shipment", &map! {}).await?;
 
     let occured_at = Utc::now().timestamp_millis();
 

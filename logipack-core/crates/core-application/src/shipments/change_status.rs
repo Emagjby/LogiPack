@@ -44,7 +44,6 @@ pub async fn change_status(
     let snap = ShipmentsRepo::get_snapshot(db, input.shipment_id).await?;
 
     let from_status: ShipmentStatus = snap.current_status.parse().unwrap_or(ShipmentStatus::New);
-
     let current_office = snap.current_office_id;
 
     // employees can only write within current shipment office
