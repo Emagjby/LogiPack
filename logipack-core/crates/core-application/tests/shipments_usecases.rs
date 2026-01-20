@@ -1,6 +1,7 @@
 use core_application::roles::Role;
 use core_application::shipments::change_status::change_status;
 use core_application::shipments::create::{CreateShipment, create_shipment};
+use core_application::shipments::timeline::read_timeline;
 use core_application::{actor::ActorContext, shipments::change_status::ChangeStatus};
 use core_data::entity::{clients, employee_offices, employees, offices, users};
 use core_domain::shipment::ShipmentStatus;
@@ -494,4 +495,135 @@ async fn create_shipment_creates_history_and_stream() {
     assert_eq!(packages.len(), 2);
     assert_eq!(packages[0].seq, 1); // stream init
     assert_eq!(packages[1].seq, 2); // real event
+}
+
+#[tokio::test]
+async fn timeline_contains_metadata_and_domain_events_in_order() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let office = seed_office(&db).await;
+    let client = seed_client(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let shipment_id = create_shipment(
+        &db,
+        &admin,
+        CreateShipment {
+            client_id: client,
+            current_office_id: Some(office),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    change_status(
+        &db,
+        &admin,
+        ChangeStatus {
+            shipment_id,
+            to_status: ShipmentStatus::Accepted,
+            to_office_id: Some(office),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    change_status(
+        &db,
+        &admin,
+        ChangeStatus {
+            shipment_id,
+            to_status: ShipmentStatus::Processed,
+            to_office_id: Some(office),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    let timeline = read_timeline(&db, shipment_id).await.unwrap();
+
+    assert_eq!(timeline.len(), 4);
+
+    assert_eq!(timeline[0].seq, 1); // metadata
+    assert_eq!(timeline[0].event_type, "shipment");
+
+    assert_eq!(timeline[1].event_type, "ShipmentCreated");
+    assert_eq!(timeline[2].event_type, "StatusChanged");
+    assert_eq!(timeline[3].event_type, "StatusChanged");
+}
+
+#[tokio::test]
+async fn timeline_is_strictly_ordered() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let office = seed_office(&db).await;
+    let client = seed_client(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let shipment_id = create_shipment(
+        &db,
+        &admin,
+        CreateShipment {
+            client_id: client,
+            current_office_id: Some(office),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    change_status(
+        &db,
+        &admin,
+        ChangeStatus {
+            shipment_id,
+            to_status: ShipmentStatus::Accepted,
+            to_office_id: Some(office),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    let timeline = read_timeline(&db, shipment_id).await.unwrap();
+
+    for i in 1..timeline.len() {
+        assert!(timeline[i].seq >= timeline[i - 1].seq);
+    }
+}
+
+#[tokio::test]
+async fn timeline_values_are_decodable() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let office = seed_office(&db).await;
+    let client = seed_client(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let shipment_id = create_shipment(
+        &db,
+        &admin,
+        CreateShipment {
+            client_id: client,
+            current_office_id: Some(office),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    let timeline = read_timeline(&db, shipment_id).await.unwrap();
+
+    for item in timeline {
+        let _ = item.value;
+    }
 }
