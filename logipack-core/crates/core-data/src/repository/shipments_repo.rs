@@ -1,5 +1,5 @@
 use sea_orm::ActiveValue::{self, Set};
-use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, QueryOrder};
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -95,5 +95,16 @@ impl ShipmentsRepo {
             .one(db)
             .await?
             .ok_or(DbErr::RecordNotFound("shipment not found".into()))?)
+    }
+
+    pub async fn list_snapshots(
+        db: &DatabaseConnection,
+    ) -> Result<Vec<shipments::Model>, ShipmentSnapshotError> {
+        let rows = shipments::Entity::find()
+            .order_by_desc(shipments::Column::CreatedAt)
+            .all(db)
+            .await?;
+
+        Ok(rows)
     }
 }

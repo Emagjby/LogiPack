@@ -19,8 +19,12 @@ core-application = { path = "../../logipack-core/crates/core-application" }
 core-data = { path = "../../logipack-core/crates/core-data" }
 core-eventstore = { path = "../../logipack-core/crates/core-eventstore" }
 core-contracts = { path = "../../logipack-core/crates/core-contracts" }
+core-data-migration = { path = "../../logipack-core/crates/core-data/migration" }
+core-eventstore-migration = { path = "../../logipack-core/crates/core-eventstore/migration" }
 sea-orm = { version = "1.1.19", features = ["sqlx-postgres", "sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
 uuid = "1.19.0"
+sea-orm-migration = "1.1.19"
+dotenvy = "0.15.7"
 
 [dev-dependencies]
 http-body-util = "0.1"

@@ -9,6 +9,7 @@ pub fn router(cfg: Config, state: AppState) -> Router {
 
     Router::new()
         .route("/health", get(routes::health::get_health))
+        .nest("/shipments", routes::shipments::router())
         .layer(axum::middleware::from_fn(move |req, next| {
             crate::dev_secret::dev_secret_middleware(req, next, dev_secret.clone())
         }))

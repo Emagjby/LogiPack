@@ -2,6 +2,8 @@ pub mod actor_extractor;
 pub mod app;
 pub mod config;
 pub mod dev_secret;
+pub mod dto;
 pub mod error;
+pub mod migrate;
 pub mod routes;
 pub mod state;

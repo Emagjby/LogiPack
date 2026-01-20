@@ -15,7 +15,7 @@ impl Config {
             .unwrap_or(3000);
 
         let dev_secret =
-            std::env::var("HUB_API_PORT").expect("DEV_SECRET must be set for dev auth");
+            std::env::var("LOGIPACK_DEV_SECRET").expect("DEV_SECRET must be set for dev auth");
 
         Self {
             host,
