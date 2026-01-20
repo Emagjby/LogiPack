@@ -12,7 +12,7 @@ help:
 	@echo "  build-web - build SvelteKit"
 
 test:
-	cargo test --workspace
+	cargo test --workspace -- --test-threads=1
 
 fmt:
 	cargo fmt --all

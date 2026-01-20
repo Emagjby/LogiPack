@@ -4,7 +4,10 @@ use core_application::shipments::create::{CreateShipment, create_shipment};
 use core_application::{actor::ActorContext, shipments::change_status::ChangeStatus};
 use core_data::entity::{clients, employee_offices, employees, offices, users};
 use core_domain::shipment::ShipmentStatus;
-use sea_orm::{ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbBackend, Set, Statement};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, DbBackend, EntityTrait,
+    PaginatorTrait, QueryFilter, Set, Statement,
+};
 use test_infra::test_db;
 use uuid::Uuid;
 
@@ -339,4 +342,156 @@ async fn office_hop_only_allowed_when_in_transit() {
     )
     .await
     .unwrap();
+}
+
+#[tokio::test]
+async fn admin_can_create_shipment() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let office = seed_office(&db).await;
+    let client = seed_client(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let shipment_id = create_shipment(
+        &db,
+        &admin,
+        CreateShipment {
+            client_id: client,
+            current_office_id: Some(office),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    // snapshot exists
+    let snap = core_data::entity::shipments::Entity::find_by_id(shipment_id)
+        .one(&db)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(snap.current_status, "NEW");
+    assert_eq!(snap.current_office_id, Some(office));
+}
+
+#[tokio::test]
+async fn employee_can_create_shipment_in_allowed_office() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let office = seed_office(&db).await;
+    let client = seed_client(&db).await;
+
+    let employee = employee_actor(&db, vec![office]).await;
+
+    let shipment_id = create_shipment(
+        &db,
+        &employee,
+        CreateShipment {
+            client_id: client,
+            current_office_id: Some(office),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    // snapshot exists
+    let snap = core_data::entity::shipments::Entity::find_by_id(shipment_id)
+        .one(&db)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(snap.current_office_id, Some(office));
+}
+
+#[tokio::test]
+async fn employee_cannot_create_shipment_outside_allowed_office() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let allowed_office = seed_office(&db).await;
+    let forbidden_office = seed_office(&db).await;
+    let client = seed_client(&db).await;
+
+    let employee = employee_actor(&db, vec![allowed_office]).await;
+
+    let err = create_shipment(
+        &db,
+        &employee,
+        CreateShipment {
+            client_id: client,
+            current_office_id: Some(forbidden_office),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap_err();
+
+    assert!(matches!(
+        err,
+        core_application::shipments::create::CreateShipmentError::Forbidden
+    ));
+
+    let count = core_data::entity::shipments::Entity::find()
+        .count(&db)
+        .await
+        .unwrap();
+
+    assert_eq!(count, 0);
+}
+
+#[tokio::test]
+async fn create_shipment_creates_history_and_stream() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let office = seed_office(&db).await;
+    let client = seed_client(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let shipment_id = create_shipment(
+        &db,
+        &admin,
+        CreateShipment {
+            client_id: client,
+            current_office_id: Some(office),
+            notes: Some("hello".into()),
+        },
+    )
+    .await
+    .unwrap();
+
+    // history exists
+    let history = core_data::entity::shipment_status_history::Entity::find()
+        .filter(core_data::entity::shipment_status_history::Column::ShipmentId.eq(shipment_id))
+        .all(&db)
+        .await
+        .unwrap();
+
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].to_status, "NEW");
+
+    // stream exists
+    let stream = core_eventstore::schema::streams::Entity::find_by_id(shipment_id)
+        .one(&db)
+        .await
+        .unwrap();
+
+    assert!(stream.is_some());
+
+    let packages = core_eventstore::schema::packages::Entity::find()
+        .filter(core_eventstore::schema::packages::Column::StreamId.eq(shipment_id))
+        .all(&db)
+        .await
+        .unwrap();
+
+    assert_eq!(packages.len(), 2);
+    assert_eq!(packages[0].seq, 1); // stream init
+    assert_eq!(packages[1].seq, 2); // real event
 }
