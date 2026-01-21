@@ -1,4 +1,6 @@
+use core_domain::shipment::ShipmentStatus;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ShipmentListItem {
@@ -34,6 +36,25 @@ pub struct OfficeDto {
     pub name: String,
     pub city: String,
     pub address: String,
+}
+
+#[derive(Deserialize)]
+pub struct CreateShipmentRequest {
+    pub client_id: Uuid,
+    pub current_office_id: Option<Uuid>,
+    pub notes: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateShipmentResponse {
+    pub shipment_id: Uuid,
+}
+
+#[derive(Deserialize)]
+pub struct ChangeStatusRequest {
+    pub to_status: ShipmentStatus,
+    pub to_office_id: Option<Uuid>,
+    pub notes: Option<String>,
 }
 
 impl From<core_data::entity::shipments::Model> for ShipmentListItem {

@@ -1,4 +1,6 @@
 use axum::{Json, http::StatusCode, response::IntoResponse};
+use core_application::shipments::{change_status::ChangeStatusError, create::CreateShipmentError};
+use core_data::repository::shipments_repo::ShipmentSnapshotError;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -38,6 +40,14 @@ impl ApiError {
             message: message.into(),
         }
     }
+
+    pub fn forbidden(code: &'static str, message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::FORBIDDEN,
+            code,
+            message: message.into(),
+        }
+    }
 }
 
 impl From<sea_orm::DbErr> for ApiError {
@@ -46,19 +56,80 @@ impl From<sea_orm::DbErr> for ApiError {
             sea_orm::DbErr::RecordNotFound(_) => {
                 ApiError::not_found("not_found", "Record not found")
             }
-            other => ApiError {
-                status: StatusCode::INTERNAL_SERVER_ERROR,
-                code: "db_error",
-                message: other.to_string(),
+            other => match other.sql_err() {
+                Some(sea_orm::SqlErr::ForeignKeyConstraintViolation(_)) => {
+                    ApiError::bad_request("invalid_reference", "Referenced entity not found")
+                }
+                Some(sea_orm::SqlErr::UniqueConstraintViolation(_)) => ApiError::bad_request(
+                    "constraint_violation",
+                    "Request violates uniqueness constraint",
+                ),
+                Some(_) => ApiError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    code: "db_error",
+                    message: other.to_string(),
+                },
+                None => ApiError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    code: "db_error",
+                    message: other.to_string(),
+                },
             },
         }
     }
 }
 
-impl From<core_data::repository::shipments_repo::ShipmentSnapshotError> for ApiError {
-    fn from(value: core_data::repository::shipments_repo::ShipmentSnapshotError) -> Self {
+impl From<ShipmentSnapshotError> for ApiError {
+    fn from(value: ShipmentSnapshotError) -> Self {
         match value {
-            core_data::repository::shipments_repo::ShipmentSnapshotError::DbError(db) => db.into(),
+            ShipmentSnapshotError::DbError(db) => db.into(),
+        }
+    }
+}
+
+impl From<CreateShipmentError> for ApiError {
+    fn from(err: CreateShipmentError) -> Self {
+        match err {
+            CreateShipmentError::Forbidden => {
+                ApiError::forbidden("forbidden", "you are not allowed to create shipments")
+            }
+
+            CreateShipmentError::DbError(db) => db.into(),
+
+            CreateShipmentError::EventstoreError(e) => {
+                ApiError::internal(format!("eventstore error: {e}"))
+            }
+
+            CreateShipmentError::EnsureStreamError(e) => {
+                ApiError::internal(format!("stream error: {e}"))
+            }
+
+            CreateShipmentError::SnapshotError(e) => e.into(),
+        }
+    }
+}
+
+impl From<ChangeStatusError> for ApiError {
+    fn from(err: ChangeStatusError) -> Self {
+        match err {
+            ChangeStatusError::Forbidden => {
+                ApiError::forbidden("forbidden", "you are not allowed to change shipment status")
+            }
+
+            ChangeStatusError::Domain(e) => ApiError::bad_request(
+                "domain_transition_error",
+                format!("invalid status transition: {e:?}"),
+            ),
+
+            ChangeStatusError::SnapshotError(e) => ApiError::from(e),
+
+            ChangeStatusError::DbError(db) => db.into(),
+
+            ChangeStatusError::StreamError(e) => ApiError::internal(format!("stream error: {e}")),
+
+            ChangeStatusError::EventstoreError(e) => {
+                ApiError::internal(format!("eventstore error: {e}"))
+            }
         }
     }
 }
