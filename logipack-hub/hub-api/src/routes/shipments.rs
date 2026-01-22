@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::{
     dto::shipments::{
         ChangeStatusRequest, CreateShipmentRequest, CreateShipmentResponse, ShipmentDetail,
-        ShipmentListItem,
+        ShipmentListItem, TimelineItem,
     },
     error::ApiError,
     state::AppState,
@@ -20,6 +20,7 @@ use core_application::{
         change_status::{ChangeStatus, change_status},
         create::{CreateShipment, create_shipment},
         get as shipments_get, list as shipments_list,
+        timeline::read_timeline,
     },
 };
 
@@ -29,6 +30,7 @@ pub fn router() -> Router<AppState> {
         .route("/:id", get(get_shipment))
         .route("/", post(create_shipment_handler))
         .route("/:id/status", post(change_status_handler))
+        .route("/:id/timeline", get(get_timeline_handler))
 }
 
 /// List all shipments
@@ -91,4 +93,14 @@ async fn change_status_handler(
     .await?;
 
     Ok(())
+}
+
+async fn get_timeline_handler(
+    Path(id): Path<Uuid>,
+    State(state): State<AppState>,
+) -> Result<Json<Vec<TimelineItem>>, ApiError> {
+    let rows = read_timeline(&state.db, id).await?;
+    let result = rows.into_iter().map(TimelineItem::from).collect();
+
+    Ok(Json(result))
 }

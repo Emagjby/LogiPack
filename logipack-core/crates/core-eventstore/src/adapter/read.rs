@@ -10,6 +10,9 @@ pub struct StreamPackage {
     pub event_type: String,
     pub hash: Vec<u8>,
     pub prev_hash: Option<Vec<u8>>,
+    /// Strata Canonical Bytes as stored in the DB.
+    pub scb: Vec<u8>,
+    /// Decoded Strata value (optional for callers).
     pub value: strata::value::Value,
 }
 
@@ -51,6 +54,7 @@ pub async fn read_stream_packages(
             event_type: r.event_type,
             hash: r.hash,
             prev_hash: r.prev_hash,
+            scb: r.scb,
             value: value?,
         });
     }

@@ -1,5 +1,7 @@
 use axum::{Json, http::StatusCode, response::IntoResponse};
-use core_application::shipments::{change_status::ChangeStatusError, create::CreateShipmentError};
+use core_application::shipments::{
+    change_status::ChangeStatusError, create::CreateShipmentError, timeline::TimelineError,
+};
 use core_data::repository::shipments_repo::ShipmentSnapshotError;
 use serde::Serialize;
 
@@ -130,6 +132,14 @@ impl From<ChangeStatusError> for ApiError {
             ChangeStatusError::EventstoreError(e) => {
                 ApiError::internal(format!("eventstore error: {e}"))
             }
+        }
+    }
+}
+
+impl From<TimelineError> for ApiError {
+    fn from(value: TimelineError) -> Self {
+        match value {
+            TimelineError::Read(e) => ApiError::internal(format!("eventstore read error: {e}")),
         }
     }
 }

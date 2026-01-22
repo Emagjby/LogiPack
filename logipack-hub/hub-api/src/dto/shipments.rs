@@ -1,3 +1,4 @@
+use base64::Engine;
 use core_domain::shipment::ShipmentStatus;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -55,6 +56,24 @@ pub struct ChangeStatusRequest {
     pub to_status: ShipmentStatus,
     pub to_office_id: Option<Uuid>,
     pub notes: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct TimelineItem {
+    pub seq: i64,
+    pub event_type: String,
+    /// Strata Canonical Bytes encoded as base64.
+    pub scb: String,
+}
+
+impl From<core_eventstore::adapter::read::StreamPackage> for TimelineItem {
+    fn from(value: core_eventstore::adapter::read::StreamPackage) -> Self {
+        Self {
+            seq: value.seq,
+            event_type: value.event_type,
+            scb: base64::engine::general_purpose::STANDARD.encode(value.scb),
+        }
+    }
 }
 
 impl From<core_data::entity::shipments::Model> for ShipmentListItem {
