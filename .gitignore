@@ -1,6 +1,8 @@
 # Local scratch / scaffolding
 temp/
 
+.env
+
 # Rust
 /target/
 **/target/

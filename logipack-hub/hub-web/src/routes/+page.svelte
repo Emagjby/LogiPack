@@ -6,6 +6,7 @@
 
 <h1>LogiPack Hub Web</h1>
 <p>Phase 3 scaffold is up.</p>
+<a href="/shipments">Go to Shipments</a>
 
 <h2>API health</h2>
 {#if data.api.ok}
