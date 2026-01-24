@@ -23,6 +23,14 @@
 	<div class="flex items-center gap-2.5">
 		<span class="material-symbols-outlined text-muted text-[18px]">schedule</span>
 		<span class="text-muted">Created At:</span>
-		<span class="text-white font-medium font-mono">{shipment.created_at}</span>
+		<span class="text-white font-medium font-mono" title={shipment.created_at}>
+			{new Date(shipment.created_at).toLocaleString(undefined, {
+				year: 'numeric',
+				month: 'short',
+				day: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit'
+			})}
+		</span>
 	</div>
 </div>

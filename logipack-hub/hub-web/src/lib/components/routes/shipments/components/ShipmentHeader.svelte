@@ -13,9 +13,17 @@
 	<div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
 		<div class="space-y-1">
 			<div class="flex items-center gap-3">
-				<h1 class="text-2xl font-bold tracking-tight text-white font-mono">
-					Shipment #{shipment.id}
-				</h1>
+				<div class="flex items-center gap-2">
+					<h1 class="text-2xl font-bold tracking-tight text-white font-mono">Shipment #</h1>
+					<button
+						type="button"
+						class="text-2xl font-bold tracking-tight text-white font-mono"
+						title={shipment.id}
+						onclick={() => navigator.clipboard.writeText(shipment.id)}
+					>
+						{shipment.id.slice(0, 5)}...
+					</button>
+				</div>
 				<ShipmentStatusBadge status={shipment.current_status} />
 			</div>
 			<p class="text-muted text-sm">Review details and manage logistics.</p>

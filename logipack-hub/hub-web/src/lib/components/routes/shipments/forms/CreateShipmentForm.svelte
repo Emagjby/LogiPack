@@ -9,11 +9,13 @@
 	const formIds = {
 		clientId: 'create-shipment-client-id',
 		officeId: 'create-shipment-office-id',
-		notes: 'create-shipment-notes'
+		notes: 'create-shipment-notes',
+		devUserSub: 'create-shipment-dev-user-sub'
 	};
 </script>
 
 <div class="flex-1 overflow-y-auto p-6 space-y-6">
+	<input type="hidden" name="dev_user_sub" id={formIds.devUserSub} />
 	<div class="space-y-2">
 		<label class="block text-sm font-medium text-zinc-300" for={formIds.clientId}
 			>Client ID</label
@@ -37,9 +39,9 @@
 			bind:value={form.current_office_id}
 		>
 			<option value={null}>Unassigned</option>
-			<option value="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa">Berlin Hub</option>
-			<option value="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb">Austin TX</option>
-			<option value="cccccccc-cccc-cccc-cccc-cccccccccccc">Tokyo Dist</option>
+			<option value="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1">Berlin Hub (Berlin - Gate 4)</option>
+			<option value="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2">Austin TX (Austin - Dock 2)</option>
+			<option value="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3">Tokyo Dist (Tokyo - Bay 1)</option>
 		</Select>
 	</div>
 

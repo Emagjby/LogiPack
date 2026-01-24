@@ -11,7 +11,11 @@
 		onAction,
 		onTimeline,
 		onStatus,
-		onClose
+		onClose,
+		page = 1,
+		totalPages = 1,
+		showPagination = false,
+		onPageChange
 	} = $props<{
 		shipments: ShipmentListItem[];
 		selectedId?: string;
@@ -20,6 +24,10 @@
 		onTimeline: (id: string) => void;
 		onStatus: (id: string) => void;
 		onClose: () => void;
+		page?: number;
+		totalPages?: number;
+		showPagination?: boolean;
+		onPageChange?: (next: number) => void;
 	}>();
 </script>
 
@@ -71,20 +79,25 @@
 			</tbody>
 		</Table>
 	</div>
-	<div
-		class="bg-[#1c1c1f] px-4 py-2 border-t border-border-dark flex items-center justify-between"
-	>
-		<span class="text-xs text-muted">Showing {shipments.length} results</span>
-		<div class="flex items-center gap-2">
-			<button
-				class="p-1 rounded text-muted hover:text-white disabled:opacity-50 hover:bg-zinc-800"
-				disabled
-			>
-				<span class="material-symbols-outlined text-[18px]">chevron_left</span>
-			</button>
-			<button class="p-1 rounded text-white hover:bg-zinc-800">
-				<span class="material-symbols-outlined text-[18px]">chevron_right</span>
-			</button>
+	{#if showPagination}
+		<div class="bg-[#1c1c1f] px-4 py-2 border-t border-border-dark flex items-center justify-between">
+			<span class="text-xs text-muted">Page {page} of {totalPages}</span>
+			<div class="flex items-center gap-2">
+				<button
+					class="p-1 rounded text-muted hover:text-white disabled:opacity-50 hover:bg-zinc-800"
+					disabled={page <= 1}
+					onclick={() => onPageChange?.(page - 1)}
+				>
+					<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+				</button>
+				<button
+					class="p-1 rounded text-muted hover:text-white disabled:opacity-50 hover:bg-zinc-800"
+					disabled={page >= totalPages}
+					onclick={() => onPageChange?.(page + 1)}
+				>
+					<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+				</button>
+			</div>
 		</div>
-	</div>
+	{/if}
 </Panel>
