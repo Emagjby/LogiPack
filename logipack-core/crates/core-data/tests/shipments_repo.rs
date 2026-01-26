@@ -32,6 +32,7 @@ pub async fn seed_user(db: &DatabaseConnection) -> Uuid {
         id: Set(id),
         email: Set(format!("user+{id}@test.com")),
         password_hash: Set("x".into()),
+        auth0_sub: Set(None),
         created_at: Set(chrono::Utc::now().into()),
     }
     .insert(db)

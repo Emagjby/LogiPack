@@ -82,6 +82,7 @@ pub async fn seed_admin_actor(db: &DatabaseConnection) -> ActorContext {
     users::ActiveModel {
         id: Set(user_id),
         email: Set(format!("admin+{}@test.com", user_id)),
+        auth0_sub: Set(None),
         password_hash: Set("x".into()),
         created_at: Set(chrono::Utc::now().into()),
     }
@@ -132,6 +133,7 @@ pub async fn seed_employee(db: &DatabaseConnection) -> ActorContext {
         id: Set(user_id),
         email: Set(format!("employee+{}@test.com", user_id)),
         password_hash: Set("x".into()),
+        auth0_sub: Set(None),
         created_at: Set(chrono::Utc::now().into()),
     }
     .insert(db)

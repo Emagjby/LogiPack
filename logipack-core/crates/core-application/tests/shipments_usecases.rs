@@ -80,6 +80,7 @@ async fn seed_user(db: &DatabaseConnection, user_type: Option<String>) -> Uuid {
         id: Set(id),
         email: Set(email),
         password_hash: Set("x".into()),
+        auth0_sub: Set(None),
         created_at: Set(chrono::Utc::now().into()),
     }
     .insert(db)
