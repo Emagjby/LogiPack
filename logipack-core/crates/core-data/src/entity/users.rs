@@ -10,6 +10,8 @@ pub struct Model {
 
     pub password_hash: String,
 
+    pub auth0_sub: Option<String>,
+
     pub created_at: DateTimeWithTimeZone,
 }
 
