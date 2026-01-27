@@ -1,5 +1,6 @@
 pub mod actor_extractor;
 pub mod app;
+pub mod auth;
 pub mod config;
 pub mod dev_secret;
 pub mod dto;
