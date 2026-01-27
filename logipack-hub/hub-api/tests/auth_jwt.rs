@@ -92,12 +92,14 @@ async fn auth0_expired_token_is_401() {
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
-        .as_secs();
+        .as_secs() as i64;
 
     let claims = json!({
         "iss": "https://test/",
         "aud": "logipack",
         "sub": "user|123",
+        "iat": now,
+        "nbf": now - 1,
         "exp": now - 10,
     });
 
@@ -107,7 +109,14 @@ async fn auth0_expired_token_is_401() {
     let token = jsonwebtoken::encode(
         &header,
         &claims,
-        &jsonwebtoken::EncodingKey::from_rsa_pem(private.as_bytes()).unwrap(),
+        &jsonwebtoken::EncodingKey::from_rsa_pem(
+            private
+                .trim()
+                .replace("\\n", "\n")
+                .replace("\r\n", "\n")
+                .as_bytes(),
+        )
+        .unwrap(),
     )
     .unwrap();
 
