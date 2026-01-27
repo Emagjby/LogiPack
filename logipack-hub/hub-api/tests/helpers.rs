@@ -7,7 +7,7 @@ use core_application::actor::ActorContext;
 use test_infra::test_db;
 
 use hub_api::app;
-use hub_api::config::Config;
+use hub_api::config::{AuthMode, Config};
 use hub_api::state::AppState;
 
 pub fn test_config() -> Config {
@@ -15,6 +15,11 @@ pub fn test_config() -> Config {
         host: "127.0.0.1".to_string(),
         port: 3000,
         dev_secret: "test_secret".to_string(),
+        auth_mode: AuthMode::DevSecret,
+        auth0_issuer: None,
+        auth0_audience: None,
+        auth0_jwks_url: None,
+        auth0_jwks_path: None,
     }
 }
 

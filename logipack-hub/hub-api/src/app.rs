@@ -210,6 +210,11 @@ mod tests {
             host: "127.0.0.1".to_string(),
             port: 3000,
             dev_secret: "test_secret".to_string(),
+            auth_mode: crate::config::AuthMode::DevSecret,
+            auth0_issuer: None,
+            auth0_audience: None,
+            auth0_jwks_url: None,
+            auth0_jwks_path: None,
         }
     }
 
