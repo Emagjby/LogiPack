@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use crate::auth::{
     claims::Claims,
-    jwks::{cache_is_fresh, cache_keys, get_cached_key, load_jwks_from_json, load_jwks_from_url},
+    jwks::{cache_is_fresh, cache_keys, get_cached_key, load_jwks_from_path, load_jwks_from_url},
 };
 
 #[derive(Debug, Clone)]
@@ -69,13 +69,13 @@ fn validate_claims(cfg: &Auth0Config, claims: &Claims) -> Result<(), ()> {
 async fn load_and_cache_jwks(cfg: &Auth0Config) -> Result<(), ()> {
     // prefer local modes first
     if let Some(raw) = &cfg.local_jwks_json {
-        let jwks = load_jwks_from_json(raw).map_err(|_| ())?;
+        let jwks = load_jwks_from_path(raw).map_err(|_| ())?;
         cache_keys(&jwks).map_err(|_| ())?;
         return Ok(());
     }
 
     if let Some(path) = &cfg.local_jwks_path {
-        let jwks = load_jwks_from_json(path).map_err(|_| ())?;
+        let jwks = load_jwks_from_path(path).map_err(|_| ())?;
         cache_keys(&jwks).map_err(|_| ())?;
         return Ok(());
     }
@@ -94,7 +94,7 @@ async fn load_and_cache_jwks(cfg: &Auth0Config) -> Result<(), ()> {
 /// - Verify RS256 signature
 /// - Validate iss/aud/exp/nbf
 /// - Store Claims in request extensions
-pub async fn auth0_jwk_middleware(
+pub async fn auth0_jwt_middleware(
     mut req: Request<Body>,
     next: Next,
     cfg: Auth0Config,

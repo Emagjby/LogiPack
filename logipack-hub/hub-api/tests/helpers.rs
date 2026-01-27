@@ -1,3 +1,7 @@
+use jsonwebtoken::Header;
+use serde_json::json;
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use axum::Router;
 use sea_orm::sqlx::types::chrono;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
@@ -9,6 +13,38 @@ use test_infra::test_db;
 use hub_api::app;
 use hub_api::config::{AuthMode, Config};
 use hub_api::state::AppState;
+
+pub fn sign_test_jwt(
+    kid: &str,
+    issuer: &str,
+    audience: &str,
+    sub: &str,
+    private_pem: &str,
+) -> String {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+
+    let claims = json!({
+        "sub": sub,
+        "iss": issuer,
+        "aud": audience,
+        "iat": now,
+        "nbf": now - 1,
+        "exp": now + 3600, // 1 hour expiry
+    });
+
+    let mut header = Header::new(jsonwebtoken::Algorithm::RS256);
+    header.kid = Some(kid.to_string());
+
+    jsonwebtoken::encode(
+        &header,
+        &claims,
+        &jsonwebtoken::EncodingKey::from_rsa_pem(private_pem.as_bytes()).unwrap(),
+    )
+    .unwrap()
+}
 
 pub fn test_config() -> Config {
     Config {
@@ -48,12 +84,36 @@ pub async fn cleanup_db(db: &DatabaseConnection) {
     }
 }
 
+pub async fn setup_auth0_app() -> axum::Router {
+    unsafe {
+        std::env::set_var("LOGIPACK_AUTH_MODE", "auth0");
+        std::env::set_var("AUTH0_ISSUER", "https://test/");
+        std::env::set_var("AUTH0_AUDIENCE", "logipack");
+        std::env::set_var(
+            "AUTH0_JWKS_PATH",
+            format!("{}/tests/fixtures/jwks.json", env!("CARGO_MANIFEST_DIR")),
+        );
+    }
+
+    let db = test_db().await;
+    let state = AppState {
+        db,
+        auth_mode: AuthMode::Auth0,
+    };
+
+    let cfg = Config::from_env();
+    app::router(cfg, state)
+}
+
 pub async fn setup_app() -> Router {
     let db = test_db().await;
 
     cleanup_db(&db).await;
 
-    let state = AppState { db };
+    let state = AppState {
+        db,
+        auth_mode: AuthMode::DevSecret,
+    };
 
     let cfg = test_config();
 
@@ -65,7 +125,10 @@ pub async fn setup_app_with_db() -> (Router, DatabaseConnection) {
 
     cleanup_db(&db).await;
 
-    let state = AppState { db: db.clone() };
+    let state = AppState {
+        db: db.clone(),
+        auth_mode: AuthMode::DevSecret,
+    };
 
     let cfg = test_config();
 
@@ -219,7 +282,10 @@ pub async fn setup_app_with_admin() -> (Router, DatabaseConnection, ActorContext
 
     cleanup_db(&db).await;
 
-    let state = AppState { db: db.clone() };
+    let state = AppState {
+        db: db.clone(),
+        auth_mode: AuthMode::DevSecret,
+    };
 
     let cfg = test_config();
 

@@ -8,6 +8,8 @@ use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 
 use core_application::{actor::ActorContext, roles::Role};
 
+use crate::auth::claims::Claims;
+use crate::config::AuthMode;
 use crate::state::AppState;
 
 use core_data::entity::{employee_offices, employees, user_roles, users};
@@ -20,13 +22,25 @@ impl FromRequestParts<AppState> for ActorContext {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let sub = parts
-            .headers
-            .get("x-dev-user-sub")
-            .and_then(|v| v.to_str().ok())
-            .ok_or((StatusCode::UNAUTHORIZED, "Missing x-dev-user-sub header"))?;
+        let sub = match state.auth_mode {
+            AuthMode::DevSecret => parts
+                .headers
+                .get("x-dev-user-sub")
+                .and_then(|v| v.to_str().ok())
+                .ok_or((StatusCode::UNAUTHORIZED, "Missing x-dev-user-sub header"))?
+                .to_string(),
 
-        resolve_actor(&state.db, sub)
+            AuthMode::Auth0 => {
+                let claims = parts
+                    .extensions
+                    .get::<Claims>()
+                    .ok_or((StatusCode::UNAUTHORIZED, "Missing JWT claims"))?;
+
+                claims.sub.clone()
+            }
+        };
+
+        resolve_actor(&state.db, &sub)
             .await
             .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid actor"))
     }

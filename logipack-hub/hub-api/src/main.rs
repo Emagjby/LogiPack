@@ -16,7 +16,10 @@ async fn main() {
         .await
         .expect("connect hub-api database");
     migrate(&db).await;
-    let state = AppState { db };
+    let state = AppState {
+        db,
+        auth_mode: cfg.auth_mode,
+    };
 
     let listener = tokio::net::TcpListener::bind(cfg.bind_addr())
         .await

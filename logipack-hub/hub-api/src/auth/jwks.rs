@@ -27,7 +27,7 @@ pub struct Jwk {
 
 impl Jwk {
     pub fn to_decoding_key(&self) -> anyhow::Result<DecodingKey> {
-        if self.kty == "RSA" {
+        if self.kty != "RSA" {
             anyhow::bail!("unsupported kty {}", self.kty);
         }
         let n = self
@@ -69,7 +69,7 @@ pub fn cache_keys(jwks: &Jwks) -> anyhow::Result<()> {
         .map_err(|_| anyhow::anyhow!("jwks cache poisoned"))?;
 
     for k in &jwks.keys {
-        if k.kty != "RSA" {
+        if k.kty == "RSA" {
             let dk = k.to_decoding_key()?;
             guard.by_kid.insert(k.kid.clone(), dk);
         }
@@ -103,8 +103,16 @@ pub async fn load_jwks_from_url(url: &str) -> anyhow::Result<Jwks> {
 }
 
 pub fn load_jwks_from_json(raw: &str) -> anyhow::Result<Jwks> {
-    let jwks: Jwks = serde_json::from_str::<Jwks>(raw)?;
-    Ok(jwks)
+    // Accept both JWKS ({"keys": [...]}) and a single JWK ({...}) for local fixtures.
+    // Keeps the public struct as-is.
+    let value: serde_json::Value = serde_json::from_str(raw)?;
+
+    if value.get("keys").is_some() {
+        Ok(serde_json::from_value::<Jwks>(value)?)
+    } else {
+        let jwk: Jwk = serde_json::from_value(value)?;
+        Ok(Jwks { keys: vec![jwk] })
+    }
 }
 
 pub fn load_jwks_from_path(path: &str) -> anyhow::Result<Jwks> {

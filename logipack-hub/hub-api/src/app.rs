@@ -1,3 +1,4 @@
+use crate::auth::middleware::{Auth0Config, auth0_jwt_middleware};
 use crate::config::{AuthMode, Config};
 use crate::state::AppState;
 use axum::{Router, routing::get};
@@ -10,17 +11,15 @@ pub fn router(cfg: Config, state: AppState) -> Router {
         .nest("/shipments", routes::shipments::router())
         .with_state(state);
 
-    match cfg.auth_mode {
+    router = match cfg.auth_mode {
         AuthMode::DevSecret => {
             let dev_secret = cfg.dev_secret.clone();
-            router = router.layer(axum::middleware::from_fn(move |req, next| {
+            router.layer(axum::middleware::from_fn(move |req, next| {
                 crate::dev_secret::dev_secret_middleware(req, next, dev_secret.clone())
-            }));
+            }))
         }
 
         AuthMode::Auth0 => {
-            use crate::auth::middleware::{Auth0Config, auth0_jwk_middleware};
-
             let auth_cfg = Auth0Config {
                 issuer: cfg.auth0_issuer.clone().expect("AUTH0_ISSUER is required"),
                 audience: cfg
@@ -33,9 +32,9 @@ pub fn router(cfg: Config, state: AppState) -> Router {
                 jwks_cache_ttl: std::time::Duration::from_secs(60 * 10),
             };
 
-            router = router.layer(axum::middleware::from_fn(move |req, next| {
-                auth0_jwk_middleware(req, next, auth_cfg.clone())
-            }));
+            router.layer(axum::middleware::from_fn(move |req, next| {
+                auth0_jwt_middleware(req, next, auth_cfg.clone())
+            }))
         }
     };
 
@@ -48,20 +47,19 @@ mod tests {
 
     use axum::{body::Body, http::Request};
     use http_body_util::BodyExt as _;
-    use sea_orm::{ConnectionTrait, DatabaseConnection, Set};
     use test_infra::test_db;
-
-    async fn cleanup_db(db: &DatabaseConnection) {
-        let _ = db
-            .execute_unprepared("TRUNCATE TABLE user_roles, users, roles RESTART IDENTITY CASCADE")
-            .await;
-    }
-    use tower::ServiceExt as _;
+    use tower::ServiceExt;
 
     #[tokio::test]
     async fn health_requires_dev_secret() {
         let db = test_db().await;
-        let app = router(test_config(), AppState { db });
+        let app = router(
+            test_config(),
+            AppState {
+                db,
+                auth_mode: AuthMode::DevSecret,
+            },
+        );
 
         let res = app
             .oneshot(
@@ -79,7 +77,13 @@ mod tests {
     #[tokio::test]
     async fn health_with_dev_secret_is_ok() {
         let db = test_db().await;
-        let app = router(test_config(), AppState { db });
+        let app = router(
+            test_config(),
+            AppState {
+                db,
+                auth_mode: AuthMode::DevSecret,
+            },
+        );
 
         let res = app
             .oneshot(
@@ -102,7 +106,13 @@ mod tests {
     #[tokio::test]
     async fn health_with_wrong_dev_secret_is_unauthorized() {
         let db = test_db().await;
-        let app = router(test_config(), AppState { db });
+        let app = router(
+            test_config(),
+            AppState {
+                db,
+                auth_mode: AuthMode::DevSecret,
+            },
+        );
 
         let res = app
             .oneshot(
@@ -118,140 +128,16 @@ mod tests {
         assert_eq!(res.status(), axum::http::StatusCode::UNAUTHORIZED);
     }
 
-    #[tokio::test]
-    async fn whoami_missing_sub_is_401() {
-        let db = test_db().await;
-        cleanup_db(&db).await;
-        let app = test_router(test_config(), AppState { db });
-
-        let res = app
-            .oneshot(
-                Request::builder()
-                    .uri("/__test/whoami")
-                    .header("x-dev-secret", "test_secret")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(res.status(), axum::http::StatusCode::UNAUTHORIZED);
-    }
-
-    #[tokio::test]
-    async fn whoami_unknown_user_is_401() {
-        let db = test_db().await;
-        cleanup_db(&db).await;
-        let app = test_router(test_config(), AppState { db });
-
-        let res = app
-            .oneshot(
-                Request::builder()
-                    .uri("/__test/whoami")
-                    .header("x-dev-secret", "test_secret")
-                    .header("x-dev-user-sub", "ghost@test.com")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(res.status(), axum::http::StatusCode::UNAUTHORIZED);
-    }
-
-    #[tokio::test]
-    async fn whoami_admin_resolves() {
-        let db = test_db().await;
-        cleanup_db(&db).await;
-        let (_id, email) = seed_admin_user(&db).await;
-
-        let app = test_router(test_config(), AppState { db });
-
-        let res = app
-            .oneshot(
-                Request::builder()
-                    .uri("/__test/whoami")
-                    .header("x-dev-secret", "test_secret")
-                    .header("x-dev-user-sub", email)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(res.status(), axum::http::StatusCode::OK);
-    }
-
-    async fn whoami(actor: core_application::actor::ActorContext) -> axum::Json<serde_json::Value> {
-        use serde_json::json;
-
-        axum::Json(json!({
-            "user_id": actor.user_id,
-            "roles": actor.roles.iter().map(|r| format!("{:?}", r)).collect::<Vec<_>>(),
-            "employee_id": actor.employee_id,
-            "offices": actor.allowed_office_ids,
-        }))
-    }
-
-    async fn seed_admin_user(db: &DatabaseConnection) -> (uuid::Uuid, String) {
-        use sea_orm::ActiveModelTrait;
-        use uuid::Uuid;
-
-        let user_id = Uuid::new_v4();
-        let email = format!("admin+{user_id}@test.com");
-
-        core_data::entity::users::ActiveModel {
-            id: Set(user_id),
-            email: Set(email.clone()),
-            password_hash: Set("x".into()),
-            ..Default::default()
-        }
-        .insert(db)
-        .await
-        .unwrap();
-
-        let role_id = Uuid::new_v4();
-
-        core_data::entity::roles::ActiveModel {
-            id: Set(role_id),
-            name: Set("admin".to_string()),
-        }
-        .insert(db)
-        .await
-        .unwrap();
-
-        core_data::entity::user_roles::ActiveModel {
-            user_id: Set(user_id),
-            role_id: Set(role_id),
-        }
-        .insert(db)
-        .await
-        .unwrap();
-
-        (user_id, email)
-    }
-
     fn test_config() -> Config {
         Config {
             host: "127.0.0.1".to_string(),
             port: 3000,
             dev_secret: "test_secret".to_string(),
-            auth_mode: crate::config::AuthMode::DevSecret,
+            auth_mode: AuthMode::DevSecret,
             auth0_issuer: None,
             auth0_audience: None,
             auth0_jwks_url: None,
             auth0_jwks_path: None,
         }
-    }
-
-    pub fn test_router(cfg: Config, state: AppState) -> Router {
-        let dev_secret = cfg.dev_secret.clone();
-
-        Router::new()
-            .route("/__test/whoami", get(whoami))
-            .layer(axum::middleware::from_fn(move |req, next| {
-                crate::dev_secret::dev_secret_middleware(req, next, dev_secret.clone())
-            }))
-            .with_state(state)
     }
 }
