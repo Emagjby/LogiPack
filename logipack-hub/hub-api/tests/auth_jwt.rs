@@ -1,4 +1,4 @@
-use std::{fs::read_to_string, time::SystemTime};
+use std::{env, time::SystemTime};
 
 use axum::{body::Body, extract::Request};
 use jsonwebtoken::Header;
@@ -14,11 +14,7 @@ pub mod helpers;
 async fn auth0_valid_token_allows_request() {
     let app = setup_auth0_app().await;
 
-    let private = read_to_string(format!(
-        "{}/tests/fixtures/private.pem",
-        env!("CARGO_MANIFEST_DIR")
-    ))
-    .unwrap();
+    let private = env::var("TEST_AUTH0_PRIVATE_PEM").unwrap();
 
     let token = sign_test_jwt(
         "vPGrStQtI1pBCs8y+UqMe7vR/S90cOiQQJy3BKyEnJI=",
@@ -63,11 +59,7 @@ async fn auth0_missing_token_is_401() {
 async fn auth0_wrong_audience_is_401() {
     let app = setup_auth0_app().await;
 
-    let private = read_to_string(format!(
-        "{}/tests/fixtures/private.pem",
-        env!("CARGO_MANIFEST_DIR")
-    ))
-    .unwrap();
+    let private = env::var("TEST_AUTH0_PRIVATE_PEM").unwrap();
 
     let token = sign_test_jwt(
         "vPGrStQtI1pBCs8y+UqMe7vR/S90cOiQQJy3BKyEnJI=",
@@ -95,11 +87,7 @@ async fn auth0_wrong_audience_is_401() {
 async fn auth0_expired_token_is_401() {
     let app = setup_auth0_app().await;
 
-    let private = read_to_string(format!(
-        "{}/tests/fixtures/private.pem",
-        env!("CARGO_MANIFEST_DIR")
-    ))
-    .unwrap();
+    let private = env::var("TEST_AUTH0_PRIVATE_PEM").unwrap();
 
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -141,11 +129,7 @@ async fn auth0_expired_token_is_401() {
 async fn auth0_unknown_kid_is_401() {
     let app = setup_auth0_app().await;
 
-    let private = read_to_string(format!(
-        "{}/tests/fixtures/private.pem",
-        env!("CARGO_MANIFEST_DIR")
-    ))
-    .unwrap();
+    let private = env::var("TEST_AUTH0_PRIVATE_PEM").unwrap();
 
     let token = sign_test_jwt(
         "unknown_kid",

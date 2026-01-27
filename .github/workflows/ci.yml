@@ -26,6 +26,7 @@ jobs:
 
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/logipack_test
+      TEST_AUTH0_PRIVATE_PEM: ${{ secrets.TEST_AUTH0_PRIVATE_PEM }}
 
     steps:
       - uses: actions/checkout@v4

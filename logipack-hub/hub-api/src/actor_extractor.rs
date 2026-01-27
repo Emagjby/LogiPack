@@ -40,19 +40,34 @@ impl FromRequestParts<AppState> for ActorContext {
             }
         };
 
-        resolve_actor(&state.db, &sub)
+        resolve_actor(&state.db, state.auth_mode, &sub)
             .await
             .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid actor"))
     }
 }
 
-async fn resolve_actor(db: &DatabaseConnection, sub: &str) -> anyhow::Result<ActorContext> {
+async fn resolve_actor(
+    db: &DatabaseConnection,
+    auth_mode: AuthMode,
+    sub: &str,
+) -> anyhow::Result<ActorContext> {
     // Resolve user
-    let user = users::Entity::find()
-        .filter(users::Column::Email.eq(sub))
-        .one(db)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("User not found"))?;
+    let user = match auth_mode {
+        AuthMode::DevSecret => {
+            users::Entity::find()
+                .filter(users::Column::Email.eq(sub))
+                .one(db)
+                .await?
+        }
+
+        AuthMode::Auth0 => {
+            users::Entity::find()
+                .filter(users::Column::Auth0Sub.eq(sub))
+                .one(db)
+                .await?
+        }
+    }
+    .ok_or_else(|| anyhow::anyhow!("User not found"))?;
 
     let user_id = user.id;
 

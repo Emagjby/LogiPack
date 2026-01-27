@@ -18,6 +18,7 @@ async fn list_shipments_empty() {
             Request::builder()
                 .uri("/shipments")
                 .header("x-dev-secret", "test_secret")
+                .header("x-dev-user-sub", "nobody@test.com")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -55,6 +56,7 @@ async fn list_shipments_returns_rows() {
             Request::builder()
                 .uri("/shipments")
                 .header("x-dev-secret", "test_secret")
+                .header("x-dev-user-sub", admin.sub.clone())
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -76,6 +78,7 @@ async fn get_shipment_404() {
             Request::builder()
                 .uri(format!("/shipments/{}", Uuid::new_v4()))
                 .header("x-dev-secret", "test_secret")
+                .header("x-dev-user-sub", "nobody@test.com")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -109,6 +112,7 @@ async fn get_shipment_returns_detail() {
             Request::builder()
                 .uri(format!("/shipments/{}", shipment))
                 .header("x-dev-secret", "test_secret")
+                .header("x-dev-user-sub", admin.sub.clone())
                 .body(Body::empty())
                 .unwrap(),
         )

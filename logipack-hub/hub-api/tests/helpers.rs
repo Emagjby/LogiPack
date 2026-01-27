@@ -1,5 +1,6 @@
 use jsonwebtoken::Header;
 use serde_json::json;
+use std::sync::Once;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::Router;
@@ -13,6 +14,51 @@ use test_infra::test_db;
 use hub_api::app;
 use hub_api::config::{AuthMode, Config};
 use hub_api::state::AppState;
+
+static INIT: Once = Once::new();
+
+fn setup() {
+    INIT.call_once(|| {
+        dotenvy::from_filename(".env.test").ok();
+    })
+}
+
+pub async fn seed_auth0_user(db: &DatabaseConnection, auth0_sub: &str) {
+    use core_data::entity::{roles, user_roles, users};
+    use sea_orm::sqlx::types::chrono;
+    use sea_orm::{ActiveModelTrait, Set};
+    use uuid::Uuid;
+
+    let user_id = Uuid::new_v4();
+    let role_id = Uuid::new_v4();
+
+    users::ActiveModel {
+        id: Set(user_id),
+        email: Set(format!("{}@test.com", user_id)),
+        auth0_sub: Set(Some(auth0_sub.to_string())),
+        password_hash: Set("x".into()),
+        created_at: Set(chrono::Utc::now().into()),
+    }
+    .insert(db)
+    .await
+    .unwrap();
+
+    roles::ActiveModel {
+        id: Set(role_id),
+        name: Set("admin".into()),
+    }
+    .insert(db)
+    .await
+    .unwrap();
+
+    user_roles::ActiveModel {
+        user_id: Set(user_id),
+        role_id: Set(role_id),
+    }
+    .insert(db)
+    .await
+    .unwrap();
+}
 
 pub fn sign_test_jwt(
     kid: &str,
@@ -84,31 +130,70 @@ pub async fn cleanup_db(db: &DatabaseConnection) {
     }
 }
 
-pub async fn setup_auth0_app() -> axum::Router {
-    unsafe {
-        std::env::set_var("LOGIPACK_AUTH_MODE", "auth0");
-        std::env::set_var("AUTH0_ISSUER", "https://test/");
-        std::env::set_var("AUTH0_AUDIENCE", "logipack");
-        std::env::set_var(
-            "AUTH0_JWKS_PATH",
-            format!("{}/tests/fixtures/jwks.json", env!("CARGO_MANIFEST_DIR")),
-        );
+fn test_auth0_config() -> Config {
+    Config {
+        host: "127.0.0.1".to_string(),
+        port: 3000,
+        dev_secret: "test_secret".to_string(),
+        auth_mode: AuthMode::Auth0,
+        auth0_issuer: Some("https://test/".to_string()),
+        auth0_audience: Some("logipack".to_string()),
+        auth0_jwks_url: None,
+        auth0_jwks_path: Some(format!(
+            "{}/tests/fixtures/jwks.json",
+            env!("CARGO_MANIFEST_DIR")
+        )),
     }
+}
+
+pub async fn setup_auth0_app() -> axum::Router {
+    setup();
 
     let db = test_db().await;
+    cleanup_db(&db).await;
+
     let state = AppState {
         db,
         auth_mode: AuthMode::Auth0,
     };
 
-    let cfg = Config::from_env();
-    app::router(cfg, state)
+    app::router(test_auth0_config(), state)
+}
+
+pub async fn setup_auth0_app_with_db() -> (Router, DatabaseConnection) {
+    setup();
+
+    let db = test_db().await;
+    cleanup_db(&db).await;
+
+    let state = AppState {
+        db: db.clone(),
+        auth_mode: AuthMode::Auth0,
+    };
+
+    (app::router(test_auth0_config(), state), db)
 }
 
 pub async fn setup_app() -> Router {
-    let db = test_db().await;
+    use core_data::entity::users;
+    use sea_orm::sqlx::types::chrono;
+    use sea_orm::{ActiveModelTrait, Set};
+    use uuid::Uuid;
 
+    let db = test_db().await;
     cleanup_db(&db).await;
+
+    // Seed a default dev user so routes that extract ActorContext
+    // can resolve `x-dev-user-sub` without each test seeding a user.
+    let _ = users::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        email: Set("nobody@test.com".to_string()),
+        auth0_sub: Set(None),
+        password_hash: Set("x".into()),
+        created_at: Set(chrono::Utc::now().into()),
+    }
+    .insert(&db)
+    .await;
 
     let state = AppState {
         db,
@@ -116,7 +201,6 @@ pub async fn setup_app() -> Router {
     };
 
     let cfg = test_config();
-
     app::router(cfg, state)
 }
 
@@ -140,11 +224,11 @@ pub async fn setup_app_with_db() -> (Router, DatabaseConnection) {
 pub async fn seed_admin_actor(db: &DatabaseConnection) -> ActorContext {
     use core_application::roles::Role;
     use core_data::entity::{roles, user_roles, users};
-    use sea_orm::{ActiveModelTrait, Set};
+    use sea_orm::sqlx::types::chrono;
+    use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
     use uuid::Uuid;
 
     let user_id = Uuid::new_v4();
-    let role_id = Uuid::new_v4();
 
     // user
     users::ActiveModel {
@@ -158,19 +242,38 @@ pub async fn seed_admin_actor(db: &DatabaseConnection) -> ActorContext {
     .await
     .unwrap();
 
-    // role row (admin)
-    roles::ActiveModel {
-        id: Set(role_id),
-        name: Set("admin".into()),
-    }
-    .insert(db)
-    .await
-    .unwrap();
+    // role row (admin) - reuse if exists
+    let role = match roles::Entity::find()
+        .filter(roles::Column::Name.eq("admin"))
+        .one(db)
+        .await
+        .unwrap()
+    {
+        Some(r) => r,
+        None => {
+            let role_id = Uuid::new_v4();
+            match (roles::ActiveModel {
+                id: Set(role_id),
+                name: Set("admin".into()),
+            })
+            .insert(db)
+            .await
+            {
+                Ok(r) => r,
+                Err(_) => roles::Entity::find()
+                    .filter(roles::Column::Name.eq("admin"))
+                    .one(db)
+                    .await
+                    .unwrap()
+                    .expect("admin role should exist"),
+            }
+        }
+    };
 
     // user_roles link
     user_roles::ActiveModel {
         user_id: Set(user_id),
-        role_id: Set(role_id),
+        role_id: Set(role.id),
     }
     .insert(db)
     .await
@@ -190,11 +293,10 @@ pub async fn seed_admin_actor(db: &DatabaseConnection) -> ActorContext {
 pub async fn seed_employee(db: &DatabaseConnection) -> ActorContext {
     use core_application::roles::Role;
     use core_data::entity::{roles, user_roles, users};
-    use sea_orm::{ActiveModelTrait, Set};
+    use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
     use uuid::Uuid;
 
     let user_id = Uuid::new_v4();
-    let role_id = Uuid::new_v4();
 
     // user
     users::ActiveModel {
@@ -208,19 +310,30 @@ pub async fn seed_employee(db: &DatabaseConnection) -> ActorContext {
     .await
     .unwrap();
 
-    // role row (admin)
-    roles::ActiveModel {
-        id: Set(role_id),
-        name: Set("employee".into()),
-    }
-    .insert(db)
-    .await
-    .unwrap();
+    // role row (employee) - reuse if exists
+    let role = match roles::Entity::find()
+        .filter(roles::Column::Name.eq("employee"))
+        .one(db)
+        .await
+        .unwrap()
+    {
+        Some(r) => r,
+        None => {
+            let role_id = Uuid::new_v4();
+            roles::ActiveModel {
+                id: Set(role_id),
+                name: Set("employee".into()),
+            }
+            .insert(db)
+            .await
+            .unwrap()
+        }
+    };
 
     // user_roles link
     user_roles::ActiveModel {
         user_id: Set(user_id),
-        role_id: Set(role_id),
+        role_id: Set(role.id),
     }
     .insert(db)
     .await

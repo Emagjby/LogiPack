@@ -36,6 +36,7 @@ pub fn router() -> Router<AppState> {
 /// List all shipments
 async fn list_shipments(
     State(state): State<AppState>,
+    _actor: ActorContext,
 ) -> Result<Json<Vec<ShipmentListItem>>, ApiError> {
     let rows = shipments_list::list_shipments(&state.db).await?;
     let result = rows.into_iter().map(ShipmentListItem::from).collect();
@@ -46,6 +47,7 @@ async fn list_shipments(
 async fn get_shipment(
     Path(id): Path<String>,
     State(state): State<AppState>,
+    _actor: ActorContext,
 ) -> Result<Json<ShipmentDetail>, ApiError> {
     let shipment_id = id
         .parse()
