@@ -23,6 +23,15 @@ fn setup() {
     })
 }
 
+fn normalize_private_key(private_pem: &str) -> Vec<u8> {
+    private_pem
+        .trim()
+        .replace("\\n", "\n")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+        .into_bytes()
+}
+
 pub async fn seed_auth0_user(db: &DatabaseConnection, auth0_sub: &str) {
     use core_data::entity::{roles, user_roles, users};
     use sea_orm::sqlx::types::chrono;
@@ -84,15 +93,12 @@ pub fn sign_test_jwt(
     let mut header = Header::new(jsonwebtoken::Algorithm::RS256);
     header.kid = Some(kid.to_string());
 
-    let private_pem = private_pem
-        .trim()
-        .replace("\\n", "\n")
-        .replace("\r\n", "\n");
+    let key_bytes = normalize_private_key(private_pem);
 
     jsonwebtoken::encode(
         &header,
         &claims,
-        &jsonwebtoken::EncodingKey::from_rsa_pem(private_pem.as_bytes()).unwrap(),
+        &jsonwebtoken::EncodingKey::from_rsa_pem(&key_bytes).unwrap(),
     )
     .unwrap()
 }

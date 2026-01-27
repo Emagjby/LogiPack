@@ -114,6 +114,7 @@ async fn auth0_expired_token_is_401() {
                 .trim()
                 .replace("\\n", "\n")
                 .replace("\r\n", "\n")
+                .replace("\r", "\n")
                 .as_bytes(),
         )
         .unwrap(),
