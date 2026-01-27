@@ -84,6 +84,11 @@ pub fn sign_test_jwt(
     let mut header = Header::new(jsonwebtoken::Algorithm::RS256);
     header.kid = Some(kid.to_string());
 
+    let private_pem = private_pem
+        .trim()
+        .replace("\\n", "\n")
+        .replace("\r\n", "\n");
+
     jsonwebtoken::encode(
         &header,
         &claims,
