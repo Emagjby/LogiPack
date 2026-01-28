@@ -1,6 +1,6 @@
 use core_application::roles::Role;
 use core_application::shipments::change_status::change_status;
-use core_application::shipments::create::{CreateShipment, create_shipment};
+use core_application::shipments::create::{create_shipment, CreateShipment};
 use core_application::shipments::timeline::read_timeline;
 use core_application::{actor::ActorContext, shipments::change_status::ChangeStatus};
 use core_data::entity::{clients, employee_offices, employees, offices, users};
@@ -78,8 +78,8 @@ async fn seed_user(db: &DatabaseConnection, user_type: Option<String>) -> Uuid {
 
     users::ActiveModel {
         id: Set(id),
-        email: Set(email),
-        password_hash: Set("x".into()),
+        email: Set(Some(email)),
+        password_hash: Set(Some("x".into())),
         auth0_sub: Set(None),
         created_at: Set(chrono::Utc::now().into()),
     }

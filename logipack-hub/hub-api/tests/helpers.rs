@@ -43,9 +43,9 @@ pub async fn seed_auth0_user(db: &DatabaseConnection, auth0_sub: &str) {
 
     users::ActiveModel {
         id: Set(user_id),
-        email: Set(format!("{}@test.com", user_id)),
+        email: Set(Some(format!("{}@test.com", user_id))),
         auth0_sub: Set(Some(auth0_sub.to_string())),
-        password_hash: Set("x".into()),
+        password_hash: Set(Some("x".into())),
         created_at: Set(chrono::Utc::now().into()),
     }
     .insert(db)
@@ -198,9 +198,9 @@ pub async fn setup_app() -> Router {
     // can resolve `x-dev-user-sub` without each test seeding a user.
     let _ = users::ActiveModel {
         id: Set(Uuid::new_v4()),
-        email: Set("nobody@test.com".to_string()),
+        email: Set(Some("nobody@test.com".to_string())),
         auth0_sub: Set(None),
-        password_hash: Set("x".into()),
+        password_hash: Set(Some("x".into())),
         created_at: Set(chrono::Utc::now().into()),
     }
     .insert(&db)
@@ -244,9 +244,9 @@ pub async fn seed_admin_actor(db: &DatabaseConnection) -> ActorContext {
     // user
     users::ActiveModel {
         id: Set(user_id),
-        email: Set(format!("admin+{}@test.com", user_id)),
+        email: Set(Some(format!("admin+{}@test.com", user_id))),
         auth0_sub: Set(None),
-        password_hash: Set("x".into()),
+        password_hash: Set(Some("x".into())),
         created_at: Set(chrono::Utc::now().into()),
     }
     .insert(db)
@@ -312,8 +312,8 @@ pub async fn seed_employee(db: &DatabaseConnection) -> ActorContext {
     // user
     users::ActiveModel {
         id: Set(user_id),
-        email: Set(format!("employee+{}@test.com", user_id)),
-        password_hash: Set("x".into()),
+        email: Set(Some(format!("employee+{}@test.com", user_id))),
+        password_hash: Set(Some("x".into())),
         auth0_sub: Set(None),
         created_at: Set(chrono::Utc::now().into()),
     }

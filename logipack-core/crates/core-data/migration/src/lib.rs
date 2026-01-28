@@ -2,6 +2,8 @@ pub use sea_orm_migration::prelude::*;
 
 mod m2026_01_13_init;
 mod m2026_01_26_add_auth0_sub_to_users;
+mod m2026_01_27_email_nullable;
+mod m2026_01_27_password_hash_nullable;
 
 pub struct Migrator;
 
@@ -11,6 +13,8 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m2026_01_13_init::Migration),
             Box::new(m2026_01_26_add_auth0_sub_to_users::Migration),
+            Box::new(m2026_01_27_password_hash_nullable::Migration),
+            Box::new(m2026_01_27_email_nullable::Migration),
         ]
     }
 

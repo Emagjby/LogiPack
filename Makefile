@@ -21,7 +21,7 @@ clippy:
 	cargo clippy --workspace --all-targets --all-features
 
 dev-api:
-	cargo run -p hub-api
+	cd logipack-hub/hub-api && cargo run
 
 dev-web:
 	cd logipack-hub/hub-web && bun run dev

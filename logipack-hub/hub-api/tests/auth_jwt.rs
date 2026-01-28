@@ -27,7 +27,7 @@ async fn auth0_valid_token_allows_request() {
     let res = app
         .oneshot(
             Request::builder()
-                .uri("/health")
+                .uri("/shipments")
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .unwrap(),
@@ -45,7 +45,7 @@ async fn auth0_missing_token_is_401() {
     let res = app
         .oneshot(
             Request::builder()
-                .uri("/health")
+                .uri("/shipments")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -72,7 +72,7 @@ async fn auth0_wrong_audience_is_401() {
     let res = app
         .oneshot(
             Request::builder()
-                .uri("/health")
+                .uri("/shipments")
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .unwrap(),
@@ -124,7 +124,7 @@ async fn auth0_expired_token_is_401() {
     let res = app
         .oneshot(
             Request::builder()
-                .uri("/health")
+                .uri("/shipments")
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .unwrap(),
@@ -152,7 +152,7 @@ async fn auth0_unknown_kid_is_401() {
     let res = app
         .oneshot(
             Request::builder()
-                .uri("/health")
+                .uri("/shipments")
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .unwrap(),

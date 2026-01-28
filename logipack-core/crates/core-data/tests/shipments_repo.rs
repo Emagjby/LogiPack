@@ -30,8 +30,8 @@ pub async fn seed_user(db: &DatabaseConnection) -> Uuid {
 
     core_data::entity::users::ActiveModel {
         id: Set(id),
-        email: Set(format!("user+{id}@test.com")),
-        password_hash: Set("x".into()),
+        email: Set(Some(format!("user+{id}@test.com"))),
+        password_hash: Set(Some("x".into())),
         auth0_sub: Set(None),
         created_at: Set(chrono::Utc::now().into()),
     }
