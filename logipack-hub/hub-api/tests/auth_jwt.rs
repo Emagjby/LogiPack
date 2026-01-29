@@ -5,14 +5,17 @@ use jsonwebtoken::Header;
 use serde_json::json;
 use tower::ServiceExt;
 
-use crate::helpers::{setup_auth0_app, sign_test_jwt};
+use crate::helpers::{seed_auth0_user, setup_auth0_app, setup_auth0_app_with_db, sign_test_jwt};
 
 #[allow(dead_code)]
 pub mod helpers;
 
 #[tokio::test]
 async fn auth0_valid_token_allows_request() {
-    let app = setup_auth0_app().await;
+    let (app, db) = setup_auth0_app_with_db().await;
+
+    let sub = "user|123";
+    seed_auth0_user(&db, sub).await;
 
     let private = env::var("TEST_AUTH0_PRIVATE_PEM").unwrap();
 
@@ -20,7 +23,7 @@ async fn auth0_valid_token_allows_request() {
         "vPGrStQtI1pBCs8y+UqMe7vR/S90cOiQQJy3BKyEnJI=",
         "https://test/",
         "logipack",
-        "user|123",
+        sub,
         &private,
     );
 

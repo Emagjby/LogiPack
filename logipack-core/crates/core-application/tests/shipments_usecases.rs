@@ -1,6 +1,6 @@
 use core_application::roles::Role;
 use core_application::shipments::change_status::change_status;
-use core_application::shipments::create::{create_shipment, CreateShipment};
+use core_application::shipments::create::{CreateShipment, create_shipment};
 use core_application::shipments::timeline::read_timeline;
 use core_application::{actor::ActorContext, shipments::change_status::ChangeStatus};
 use core_data::entity::{clients, employee_offices, employees, offices, users};
