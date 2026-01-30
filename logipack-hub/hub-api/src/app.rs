@@ -1,9 +1,9 @@
-use crate::auth::middleware::auth0_jwt_middleware;
 use crate::auth::middleware::Auth0Config;
+use crate::auth::middleware::auth0_jwt_middleware;
 use crate::config::AuthMode;
 use crate::config::Config;
 use crate::state::AppState;
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 
 use crate::routes;
 
