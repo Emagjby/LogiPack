@@ -1,3 +1,5 @@
+use core_application::roles::Role;
+use core_data::entity::user_roles;
 use jsonwebtoken::Header;
 use serde_json::json;
 use std::sync::Once;
@@ -183,6 +185,72 @@ pub async fn setup_auth0_app_with_db() -> (Router, DatabaseConnection) {
     };
 
     (app::router(test_auth0_config(), state), db)
+}
+
+pub async fn setup_app_with_employee() -> (Router, ActorContext) {
+    use core_data::entity::{roles, users};
+    use sea_orm::sqlx::types::chrono;
+    use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+    use uuid::Uuid;
+
+    let db = test_db().await;
+    cleanup_db(&db).await;
+
+    let user_id = Uuid::new_v4();
+    users::ActiveModel {
+        id: Set(user_id),
+        email: Set(Some("nobody@test.com".to_string())),
+        password_hash: Set(Some("x".into())),
+        auth0_sub: Set(None),
+        created_at: Set(chrono::Utc::now().into()),
+    }
+    .insert(&db)
+    .await
+    .unwrap();
+
+    let role = match roles::Entity::find()
+        .filter(roles::Column::Name.eq("employee"))
+        .one(&db)
+        .await
+        .unwrap()
+    {
+        Some(r) => r,
+        None => {
+            let role_id = Uuid::new_v4();
+            roles::ActiveModel {
+                id: Set(role_id),
+                name: Set("employee".into()),
+            }
+            .insert(&db)
+            .await
+            .unwrap()
+        }
+    };
+
+    // user_roles link
+    user_roles::ActiveModel {
+        user_id: Set(user_id),
+        role_id: Set(role.id),
+    }
+    .insert(&db)
+    .await
+    .unwrap();
+
+    let employee = ActorContext {
+        user_id,
+        sub: "nobody@test.com".to_string(),
+        roles: vec![Role::Employee],
+        employee_id: None,
+        allowed_office_ids: vec![],
+    };
+
+    let state = AppState {
+        db,
+        auth_mode: AuthMode::DevSecret,
+    };
+
+    let cfg = test_config();
+    (app::router(cfg, state), employee)
 }
 
 pub async fn setup_app() -> Router {

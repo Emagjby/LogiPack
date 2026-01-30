@@ -8,17 +8,18 @@ use hub_api::dto::shipments::{ShipmentDetail, ShipmentListItem};
 
 #[allow(dead_code)]
 mod helpers;
-use helpers::{seed_client, seed_office, setup_app, setup_app_with_admin};
+use helpers::{seed_client, seed_office, setup_app_with_admin, setup_app_with_employee};
 
 #[tokio::test]
 async fn list_shipments_empty() {
-    let app = setup_app().await;
+    let (app, employee) = setup_app_with_employee().await;
+
     let res = app
         .oneshot(
             Request::builder()
                 .uri("/shipments")
                 .header("x-dev-secret", "test_secret")
-                .header("x-dev-user-sub", "nobody@test.com")
+                .header("x-dev-user-sub", employee.sub.clone())
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -71,14 +72,14 @@ async fn list_shipments_returns_rows() {
 
 #[tokio::test]
 async fn get_shipment_404() {
-    let app = setup_app().await;
+    let (app, employee) = setup_app_with_employee().await;
 
     let res = app
         .oneshot(
             Request::builder()
                 .uri(format!("/shipments/{}", Uuid::new_v4()))
                 .header("x-dev-secret", "test_secret")
-                .header("x-dev-user-sub", "nobody@test.com")
+                .header("x-dev-user-sub", employee.sub.clone())
                 .body(Body::empty())
                 .unwrap(),
         )

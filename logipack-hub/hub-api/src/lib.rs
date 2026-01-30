@@ -6,5 +6,6 @@ pub mod dev_secret;
 pub mod dto;
 pub mod error;
 pub mod migrate;
+pub mod policy;
 pub mod routes;
 pub mod state;

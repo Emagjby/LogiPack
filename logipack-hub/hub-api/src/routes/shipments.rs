@@ -11,6 +11,7 @@ use crate::{
         ShipmentListItem, TimelineItem,
     },
     error::ApiError,
+    policy,
     state::AppState,
 };
 
@@ -38,6 +39,9 @@ async fn list_shipments(
     State(state): State<AppState>,
     _actor: ActorContext,
 ) -> Result<Json<Vec<ShipmentListItem>>, ApiError> {
+    policy::require_employee(&_actor)
+        .map_err(|_| ApiError::forbidden("access_denied", "Access denied"))?;
+
     let rows = shipments_list::list_shipments(&state.db).await?;
     let result = rows.into_iter().map(ShipmentListItem::from).collect();
     Ok(Json(result))
@@ -49,6 +53,9 @@ async fn get_shipment(
     State(state): State<AppState>,
     _actor: ActorContext,
 ) -> Result<Json<ShipmentDetail>, ApiError> {
+    policy::require_employee(&_actor)
+        .map_err(|_| ApiError::forbidden("access_denied", "Access denied"))?;
+
     let shipment_id = id
         .parse()
         .map_err(|_e| ApiError::bad_request("invalid_shipment_id", "Invalid shipment id"))?;
@@ -62,6 +69,9 @@ async fn create_shipment_handler(
     actor: ActorContext,
     Json(req): Json<CreateShipmentRequest>,
 ) -> Result<Json<CreateShipmentResponse>, ApiError> {
+    policy::require_employee(&actor)
+        .map_err(|_| ApiError::forbidden("access_denied", "Access denied"))?;
+
     let id = create_shipment(
         &state.db,
         &actor,
@@ -82,6 +92,9 @@ async fn change_status_handler(
     actor: ActorContext,
     Json(req): Json<ChangeStatusRequest>,
 ) -> Result<(), ApiError> {
+    policy::require_employee(&actor)
+        .map_err(|_| ApiError::forbidden("access_denied", "Access denied"))?;
+
     change_status(
         &state.db,
         &actor,
@@ -100,7 +113,11 @@ async fn change_status_handler(
 async fn get_timeline_handler(
     Path(id): Path<Uuid>,
     State(state): State<AppState>,
+    actor: ActorContext,
 ) -> Result<Json<Vec<TimelineItem>>, ApiError> {
+    policy::require_employee(&actor)
+        .map_err(|_| ApiError::forbidden("access_denied", "Access denied"))?;
+
     let rows = read_timeline(&state.db, id).await?;
     let result = rows.into_iter().map(TimelineItem::from).collect();
 
