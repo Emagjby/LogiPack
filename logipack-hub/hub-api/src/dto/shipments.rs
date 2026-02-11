@@ -3,6 +3,8 @@ use core_domain::shipment::ShipmentStatus;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::dto::clients::ClientDto;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ShipmentListItem {
     pub id: String,
@@ -21,14 +23,6 @@ pub struct ShipmentDetail {
     pub current_office: Option<OfficeDto>,
     pub created_at: String,
     pub updated_at: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ClientDto {
-    pub id: String,
-    pub name: String,
-    pub email: Option<String>,
-    pub phone: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
