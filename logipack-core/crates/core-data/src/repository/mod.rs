@@ -1,3 +1,2 @@
-// Intentionally minimal
-// Impl and ports live later
+pub mod clients_repo;
 pub mod shipments_repo;
