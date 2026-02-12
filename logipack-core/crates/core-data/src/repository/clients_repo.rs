@@ -41,6 +41,11 @@ impl ClientsRepo {
         id: Uuid,
     ) -> Result<Option<clients::Model>, ClientError> {
         let retrieved = clients::Entity::find_by_id(id).one(db).await?;
+
+        if retrieved.is_none() {
+            return Err(ClientError::RecordNotFound);
+        }
+
         Ok(retrieved)
     }
 

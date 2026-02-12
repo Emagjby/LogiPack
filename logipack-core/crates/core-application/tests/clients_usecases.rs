@@ -383,6 +383,29 @@ async fn invalid_client_data_cannot_update_client() {
     assert!(matches!(invalid_email, UpdateClientError::Validation(_)));
 }
 
+#[tokio::test]
+async fn updating_nonexistent_client_returns_error() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let result = update_client(
+        &db,
+        &admin,
+        UpdateClient {
+            id: Uuid::new_v4(),
+            name: Some("John Notdoe".to_string()),
+            phone: None,
+            email: None,
+        },
+    )
+    .await
+    .unwrap_err();
+
+    assert!(matches!(result, UpdateClientError::NotFound));
+}
+
 /* ------------------- */
 /* Delete Client tests */
 /* ------------------- */
@@ -398,8 +421,8 @@ async fn admin_can_delete_client() {
 
     delete_client(&db, &admin, client_id).await.unwrap();
 
-    let result = get_client(&db, &admin, client_id).await.unwrap();
-    assert!(result.is_none());
+    let result = get_client(&db, &admin, client_id).await.unwrap_err();
+    assert!(matches!(result, GetClientError::NotFound));
 }
 
 #[tokio::test]
@@ -441,7 +464,7 @@ async fn deleting_nonexistent_client_returns_error() {
         .await
         .unwrap_err();
 
-    assert!(matches!(result, DeleteClientError::DeleteClientError(_)));
+    assert!(matches!(result, DeleteClientError::NotFound));
 }
 
 /* ---------------- */
@@ -501,8 +524,9 @@ async fn getting_nonexistent_client_returns_none() {
 
     let admin = admin_actor(&db).await;
 
-    let result = get_client(&db, &admin, Uuid::new_v4()).await.unwrap();
-    assert!(result.is_none());
+    let result = get_client(&db, &admin, Uuid::new_v4()).await.unwrap_err();
+
+    assert!(matches!(result, GetClientError::NotFound));
 }
 
 /* ----------------- */

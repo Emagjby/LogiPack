@@ -11,6 +11,8 @@ use crate::actor::ActorContext;
 pub enum GetClientError {
     #[error("forbidden")]
     Forbidden,
+    #[error("not found")]
+    NotFound,
     #[error("{0}")]
     ClientError(#[from] ClientError),
 }
@@ -20,12 +22,17 @@ pub async fn get_client(
     actor: &ActorContext,
     id: uuid::Uuid,
 ) -> Result<Option<clients::Model>, GetClientError> {
-    // Only admin can create clients
+    // Only admin can get clients
     if !actor.is_admin() {
         return Err(GetClientError::Forbidden);
     }
 
-    let result = clients_repo::ClientsRepo::get_client_by_id(db, id).await?;
+    let result = clients_repo::ClientsRepo::get_client_by_id(db, id)
+        .await
+        .map_err(|e| match e {
+            ClientError::RecordNotFound => GetClientError::NotFound,
+            other => GetClientError::ClientError(other),
+        })?;
 
     Ok(result)
 }

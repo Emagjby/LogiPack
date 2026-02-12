@@ -19,7 +19,7 @@ pub async fn list_clients(
     db: &DatabaseConnection,
     actor: &ActorContext,
 ) -> Result<Vec<clients::Model>, ListClientsError> {
-    // Only admin can create clients
+    // Only admin can list clients
     if !actor.is_admin() {
         return Err(ListClientsError::Forbidden);
     }

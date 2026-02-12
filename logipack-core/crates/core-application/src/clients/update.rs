@@ -22,6 +22,8 @@ pub enum UpdateClientError {
     Forbidden,
     #[error("validation error: {0}")]
     Validation(#[from] ClientValidationError),
+    #[error("not found")]
+    NotFound,
     #[error("{0}")]
     UpdateClientError(#[from] ClientError),
 }
@@ -31,7 +33,7 @@ pub async fn update_client(
     actor: &ActorContext,
     input: UpdateClient,
 ) -> Result<Uuid, UpdateClientError> {
-    // Only admin can create clients
+    // Only admin can update clients
     if !actor.is_admin() {
         return Err(UpdateClientError::Forbidden);
     }
@@ -47,7 +49,11 @@ pub async fn update_client(
     validate_phone(input.phone.as_deref())?;
 
     clients_repo::ClientsRepo::update_client(db, input.id, input.name, input.phone, input.email)
-        .await?;
+        .await
+        .map_err(|e| match e {
+            ClientError::RecordNotFound => UpdateClientError::NotFound,
+            other => UpdateClientError::UpdateClientError(other),
+        })?;
 
     Ok(input.id)
 }

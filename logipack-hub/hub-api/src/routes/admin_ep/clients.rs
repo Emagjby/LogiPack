@@ -77,6 +77,9 @@ async fn get_client_handler(
     let out = core_application::clients::get::get_client(&state.db, &actor, client_uuid)
         .await
         .map_err(|e| match e {
+            core_application::clients::get::GetClientError::NotFound => {
+                ApiError::not_found("client_not_found", "Client not found")
+            }
             core_application::clients::get::GetClientError::Forbidden => {
                 ApiError::forbidden("access_denied", "Access denied")
             }
@@ -85,19 +88,14 @@ async fn get_client_handler(
             }
         })?;
 
-    let dto = out.map(|client| ClientDto {
-        id: client.id.to_string(),
-        name: client.name,
-        phone: client.phone,
-        email: client.email,
-    });
-
-    if dto.is_none() {
-        return Err(ApiError::not_found("client_not_found", "Client not found"));
-    }
-
+    let client = out.ok_or_else(|| ApiError::not_found("client_not_found", "Client not found"))?;
     let result = GetClientResponse {
-        client: dto.unwrap(),
+        client: ClientDto {
+            id: client.id.to_string(),
+            name: client.name,
+            phone: client.phone,
+            email: client.email,
+        },
     };
 
     Ok(Json(result))
@@ -162,6 +160,9 @@ async fn update_client_handler(
     let out = core_application::clients::update::update_client(&state.db, &actor, input)
         .await
         .map_err(|e| match e {
+            core_application::clients::update::UpdateClientError::NotFound => {
+                ApiError::not_found("client_not_found", "Client not found")
+            }
             core_application::clients::update::UpdateClientError::Forbidden => {
                 ApiError::forbidden("access_denied", "Access denied")
             }
@@ -196,6 +197,9 @@ async fn delete_client_handler(
     core_application::clients::delete::delete_client(&state.db, &actor, client_uuid)
         .await
         .map_err(|e| match e {
+            core_application::clients::delete::DeleteClientError::NotFound => {
+                ApiError::not_found("client_not_found", "Client not found")
+            }
             core_application::clients::delete::DeleteClientError::Forbidden => {
                 ApiError::forbidden("access_denied", "Access denied")
             }

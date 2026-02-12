@@ -9,6 +9,8 @@ use crate::actor::ActorContext;
 pub enum DeleteClientError {
     #[error("forbidden")]
     Forbidden,
+    #[error("not found")]
+    NotFound,
     #[error("{0}")]
     DeleteClientError(#[from] ClientError),
 }
@@ -18,12 +20,17 @@ pub async fn delete_client(
     actor: &ActorContext,
     id: Uuid,
 ) -> Result<Uuid, DeleteClientError> {
-    // Only admin can create clients
+    // Only admin can delete clients
     if !actor.is_admin() {
         return Err(DeleteClientError::Forbidden);
     }
 
-    clients_repo::ClientsRepo::delete_client(db, id).await?;
+    clients_repo::ClientsRepo::delete_client(db, id)
+        .await
+        .map_err(|e| match e {
+            ClientError::RecordNotFound => DeleteClientError::NotFound,
+            other => DeleteClientError::DeleteClientError(other),
+        })?;
 
     Ok(id)
 }
