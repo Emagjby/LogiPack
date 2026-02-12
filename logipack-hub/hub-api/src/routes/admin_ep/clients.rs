@@ -52,10 +52,6 @@ async fn list_clients_handler(
         })
         .collect();
 
-    if dtos.is_empty() {
-        return Err(ApiError::not_found("no_clients", "No clients found"));
-    }
-
     let result = ListClientsResponse { clients: dtos };
 
     Ok(Json(result))
@@ -105,7 +101,7 @@ async fn create_client_handler(
     State(state): State<AppState>,
     actor: ActorContext,
     Json(request): Json<CreateClientRequest>,
-) -> Result<Json<CreateClientResponse>, ApiError> {
+) -> Result<(axum::http::StatusCode, Json<CreateClientResponse>), ApiError> {
     policy::require_admin(&actor)
         .map_err(|_| ApiError::forbidden("access_denied", "Access denied"))?;
 
@@ -133,7 +129,7 @@ async fn create_client_handler(
         client_id: client_id.to_string(),
     };
 
-    Ok(Json(result))
+    Ok((axum::http::StatusCode::CREATED, Json(result)))
 }
 
 async fn update_client_handler(
@@ -185,7 +181,7 @@ async fn delete_client_handler(
     State(state): State<AppState>,
     actor: ActorContext,
     Path(id): Path<String>,
-) -> Result<Json<String>, ApiError> {
+) -> Result<axum::http::StatusCode, ApiError> {
     policy::require_admin(&actor)
         .map_err(|_| ApiError::forbidden("access_denied", "Access denied"))?;
 
@@ -208,7 +204,5 @@ async fn delete_client_handler(
             }
         })?;
 
-    let result = format!("Client {} deleted successfully", id);
-
-    Ok(Json(result))
+    Ok(axum::http::StatusCode::NO_CONTENT)
 }

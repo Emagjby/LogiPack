@@ -4,21 +4,16 @@ use axum::{
     http::{Method, StatusCode},
 };
 use http_body_util::BodyExt;
-use hub_api::dto::shipments::CreateShipmentResponse;
+use hub_api::dto::clients::CreateClientResponse;
 use serde_json::json;
 use tower::ServiceExt;
 use uuid::Uuid;
 
-use crate::helpers::{
-    seed_client, seed_employee, seed_office, setup_app_with_admin, setup_app_with_db,
-};
-
-#[allow(dead_code)]
-pub mod helpers;
+use crate::helpers::{seed_employee, setup_app_with_admin, setup_app_with_db};
 
 #[tokio::test]
 async fn admin_can_create_client() {
-    let (app, db, admin) = setup_app_with_admin().await;
+    let (app, _db, admin) = setup_app_with_admin().await;
 
     let res = app
         .oneshot(
@@ -27,7 +22,7 @@ async fn admin_can_create_client() {
                 .header("x-dev-user-sub", admin.sub.clone())
                 .header("content-type", "application/json")
                 .method(Method::POST)
-                .uri("/clients")
+                .uri("/admin/clients")
                 .body(Body::from(
                     serde_json::to_vec(&json!({
                         "name": "John Doe",
@@ -41,11 +36,12 @@ async fn admin_can_create_client() {
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::OK);
+    assert_eq!(res.status(), StatusCode::CREATED);
     let body = res.into_body().collect().await.unwrap().to_bytes();
-    let body: CreateShipmentResponse = serde_json::from_slice(&body).unwrap();
+    let body: CreateClientResponse = serde_json::from_slice(&body).unwrap();
+    let client_id = Uuid::parse_str(&body.client_id).unwrap();
 
-    assert_ne!(body.shipment_id, Uuid::nil());
+    assert_ne!(client_id, Uuid::nil());
 }
 
 #[tokio::test]
@@ -61,7 +57,7 @@ async fn employee_cannot_create_client() {
                 .header("x-dev-user-sub", employee.sub.clone())
                 .header("content-type", "application/json")
                 .method(Method::POST)
-                .uri("/clients")
+                .uri("/admin/clients")
                 .body(Body::from(
                     serde_json::to_vec(&json!({
                         "name": "John Doe",
@@ -89,7 +85,7 @@ async fn no_role_cannot_create_client() {
                 .header("x-dev-user-sub", Uuid::new_v4().to_string())
                 .header("content-type", "application/json")
                 .method(Method::POST)
-                .uri("/clients")
+                .uri("/admin/clients")
                 .body(Body::from(
                     serde_json::to_vec(&json!({
                         "name": "John Doe",
@@ -103,7 +99,7 @@ async fn no_role_cannot_create_client() {
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+    assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
 }
 
 #[tokio::test]
@@ -117,7 +113,7 @@ async fn create_client_invalid_json() {
                 .header("x-dev-user-sub", admin.sub.clone())
                 .header("content-type", "application/json")
                 .method(Method::POST)
-                .uri("/clients")
+                .uri("/admin/clients")
                 .body(Body::from("{invalid"))
                 .unwrap(),
         )
