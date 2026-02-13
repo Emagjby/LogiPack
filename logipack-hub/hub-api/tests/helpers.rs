@@ -441,6 +441,9 @@ pub async fn seed_client(db: &DatabaseConnection) -> Uuid {
         name: Set("Test Client".into()),
         phone: Set(None),
         email: Set(None),
+        created_at: Set(chrono::Utc::now().into()),
+        updated_at: Set(chrono::Utc::now().into()),
+        deleted_at: Set(None),
     }
     .insert(db)
     .await
@@ -461,6 +464,9 @@ pub async fn seed_office(db: &DatabaseConnection) -> Uuid {
         name: Set("Main Office".into()),
         city: Set("Test City".into()),
         address: Set("Test Address".into()),
+        created_at: Set(chrono::Utc::now().into()),
+        updated_at: Set(chrono::Utc::now().into()),
+        deleted_at: Set(None),
     }
     .insert(db)
     .await

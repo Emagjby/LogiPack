@@ -9,6 +9,10 @@ pub struct Model {
     pub name: String,
     pub city: String,
     pub address: String,
+
+    pub created_at: DateTimeWithTimeZone,
+    pub updated_at: DateTimeWithTimeZone,
+    pub deleted_at: Option<DateTimeWithTimeZone>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

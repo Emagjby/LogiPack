@@ -5,6 +5,7 @@ edition = "2024"
 publish = false
 
 [lib]
+doctest = false
 name = "core_eventstore_migration"
 path = "src/lib.rs"
 
