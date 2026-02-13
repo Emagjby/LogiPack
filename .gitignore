@@ -23,3 +23,7 @@ Cargo.lock
 **/*.swp
 .DS_Store
 tmp/
+SKILLS.md
+AGENTS.md
+.agents/
+AGENTS*.md

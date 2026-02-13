@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+[lib]
+doctest = false
+
 [dependencies]
 sea-orm = { version = "1", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 sea-orm-migration = { version = "1", features = ["runtime-tokio-rustls", "sqlx-postgres"] }

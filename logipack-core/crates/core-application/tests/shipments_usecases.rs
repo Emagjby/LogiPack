@@ -45,6 +45,9 @@ async fn seed_client(db: &DatabaseConnection) -> Uuid {
         name: Set("Test Client".into()),
         phone: Set(None),
         email: Set(None),
+        created_at: Set(chrono::Utc::now().into()),
+        updated_at: Set(chrono::Utc::now().into()),
+        deleted_at: Set(None),
     }
     .insert(db)
     .await
@@ -61,6 +64,9 @@ async fn seed_office(db: &DatabaseConnection) -> Uuid {
         name: Set("Office".into()),
         city: Set("City".into()),
         address: Set("Address".into()),
+        created_at: Set(chrono::Utc::now().into()),
+        updated_at: Set(chrono::Utc::now().into()),
+        deleted_at: Set(None),
     }
     .insert(db)
     .await
@@ -97,6 +103,9 @@ async fn seed_employee(db: &DatabaseConnection, user_id: Uuid) -> Uuid {
         id: Set(id),
         user_id: Set(user_id),
         full_name: Set("Test Employee".into()),
+        created_at: Set(chrono::Utc::now().into()),
+        updated_at: Set(chrono::Utc::now().into()),
+        deleted_at: Set(None),
     }
     .insert(db)
     .await

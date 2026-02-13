@@ -3,6 +3,9 @@ name = "core-data"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+doctest = false
+
 [dependencies]
 sea-orm = { version = "1", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 uuid = { version = "1", features = ["v4"] }

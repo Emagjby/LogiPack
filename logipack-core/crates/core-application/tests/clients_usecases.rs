@@ -43,6 +43,9 @@ async fn seed_client(db: &DatabaseConnection) -> Uuid {
         name: Set("John Doe".to_string()),
         phone: Set(Some("+359123456".to_string())),
         email: Set(Some("email@example.com".to_string())),
+        created_at: Set(chrono::Utc::now().into()),
+        updated_at: Set(chrono::Utc::now().into()),
+        deleted_at: Set(None),
     }
     .insert(db)
     .await
@@ -79,6 +82,9 @@ async fn seed_employee(db: &DatabaseConnection, user_id: Uuid) -> Uuid {
         id: Set(id),
         user_id: Set(user_id),
         full_name: Set("Test Employee".into()),
+        created_at: Set(chrono::Utc::now().into()),
+        updated_at: Set(chrono::Utc::now().into()),
+        deleted_at: Set(None),
     }
     .insert(db)
     .await
@@ -406,6 +412,33 @@ async fn updating_nonexistent_client_returns_error() {
     assert!(matches!(result, UpdateClientError::NotFound));
 }
 
+#[tokio::test]
+async fn updating_deleted_client_returns_error() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let client_id = seed_client(&db).await;
+
+    delete_client(&db, &admin, client_id).await.unwrap();
+
+    let result = update_client(
+        &db,
+        &admin,
+        UpdateClient {
+            id: client_id,
+            name: Some("John Notdoe".to_string()),
+            phone: None,
+            email: None,
+        },
+    )
+    .await
+    .unwrap_err();
+
+    assert!(matches!(result, UpdateClientError::NotFound));
+}
+
 /* ------------------- */
 /* Delete Client tests */
 /* ------------------- */
@@ -463,6 +496,22 @@ async fn deleting_nonexistent_client_returns_error() {
     let result = delete_client(&db, &admin, Uuid::new_v4())
         .await
         .unwrap_err();
+
+    assert!(matches!(result, DeleteClientError::NotFound));
+}
+
+#[tokio::test]
+async fn deleting_already_deleted_client_returns_error() {
+    let db = test_db().await;
+    cleanup(&db).await;
+
+    let admin = admin_actor(&db).await;
+
+    let client_id = seed_client(&db).await;
+
+    delete_client(&db, &admin, client_id).await.unwrap();
+
+    let result = delete_client(&db, &admin, client_id).await.unwrap_err();
 
     assert!(matches!(result, DeleteClientError::NotFound));
 }
