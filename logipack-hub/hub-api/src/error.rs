@@ -50,6 +50,14 @@ impl ApiError {
             message: message.into(),
         }
     }
+
+    pub fn conflict(code: &'static str, message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::CONFLICT,
+            code,
+            message: message.into(),
+        }
+    }
 }
 
 impl From<sea_orm::DbErr> for ApiError {
