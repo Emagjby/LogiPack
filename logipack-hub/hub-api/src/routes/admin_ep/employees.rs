@@ -22,6 +22,7 @@ pub fn router() -> Router<AppState> {
         .route("/", post(create_employee_handler))
         .route("/:id", put(update_employee_handler))
         .route("/:id", delete(delete_employee_handler))
+        .nest("/:id/offices", super::employee_offices::router())
 }
 
 async fn list_employees_handler(
