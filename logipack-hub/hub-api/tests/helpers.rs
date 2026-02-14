@@ -475,6 +475,48 @@ pub async fn seed_office(db: &DatabaseConnection) -> Uuid {
     id
 }
 
+pub async fn seed_employee_record(db: &DatabaseConnection) -> Uuid {
+    use core_data::entity::employees;
+    use sea_orm::{ActiveModelTrait, Set};
+
+    let user_id = seed_user_for_employee(db).await;
+    let id = Uuid::new_v4();
+
+    employees::ActiveModel {
+        id: Set(id),
+        user_id: Set(user_id),
+        full_name: Set("Test Employee".into()),
+        created_at: Set(chrono::Utc::now().into()),
+        updated_at: Set(chrono::Utc::now().into()),
+        deleted_at: Set(None),
+    }
+    .insert(db)
+    .await
+    .unwrap();
+
+    id
+}
+
+pub async fn seed_user_for_employee(db: &DatabaseConnection) -> Uuid {
+    use core_data::entity::users;
+    use sea_orm::{ActiveModelTrait, Set};
+
+    let id = Uuid::new_v4();
+
+    users::ActiveModel {
+        id: Set(id),
+        email: Set(Some(format!("user+{}@test.com", id))),
+        auth0_sub: Set(None),
+        password_hash: Set(Some("x".into())),
+        created_at: Set(chrono::Utc::now().into()),
+    }
+    .insert(db)
+    .await
+    .unwrap();
+
+    id
+}
+
 pub async fn setup_app_with_admin() -> (Router, DatabaseConnection, ActorContext) {
     let db = test_db().await;
 
