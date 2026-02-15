@@ -1,5 +1,0 @@
-    let id = create_client(state.db, actor, CreateClientRequest { name, email, phone })
-        .await
-        .map_err(|e| ApiError::internal(format!("Failed to create client: {}", e)))?;
-
-    Ok(Json(CreateClientResponse { client_id: id }))

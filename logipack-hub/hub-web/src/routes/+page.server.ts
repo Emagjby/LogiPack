@@ -1,37 +1,52 @@
-import type { PageServerLoad } from "./$types";
-import { env } from "$env/dynamic/private";
+import { redirect } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ fetch }) => {
-	const protocol = env.LOGIPACK_API_HTTPS === "true" ? "https" : "http";
-	const apiBaseUrl = `${protocol}://${env.LOGIPACK_API_URL}:${env.LOGIPACK_API_PORT}`;
+export const load: PageServerLoad = async ({ locals, cookies }) => {
+	// Check locals.user first (set by hooks.server.ts when auth is wired up)
+	// Fall back to lp_session cookie as a placeholder mechanism
+	const authenticated = locals.user ?? cookies.get('lp_session');
 
-	try {
-		const res = await fetch(`${apiBaseUrl}/health`, {
-			method: "GET",
-			headers: {
-				"x-dev-secret": env.LOGIPACK_DEV_SECRET || "",
-			},
-		});
-		console.log("Used dev secret:", env.LOGIPACK_DEV_SECRET);
-		if (!res.ok) {
-			throw new Error(`API responded with status ${res.status}`);
-		}
-		const text = await res.text();
-
-		return {
-			api: {
-				ok: res.ok,
-				status: res.status,
-				text,
-			},
-		};
-	} catch (err) {
-		return {
-			api: {
-				ok: false,
-				status: 0,
-				text: err instanceof Error ? err.message : String(err),
-			},
-		};
+	if (authenticated) {
+		redirect(302, '/app');
 	}
+
+	return {
+		appName: 'LogiPack',
+		loginUrl: '/login',
+		features: [
+			{
+				title: 'Shipment timeline',
+				description: 'Chronological audit of every event — who changed what, when.',
+				icon: 'timeline'
+			},
+			{
+				title: 'Office-aware tracking',
+				description: 'See the current office, track handoffs between locations.',
+				icon: 'office'
+			},
+			{
+				title: 'Role-based consoles',
+				description: 'Separate capabilities for employees and administrators.',
+				icon: 'roles'
+			},
+			{
+				title: 'Admin management',
+				description: 'Manage clients, offices, employees, and assignments.',
+				icon: 'admin'
+			}
+		],
+		steps: [
+			{ number: 1, title: 'Create or ingest', description: 'Add shipments into the system.' },
+			{
+				number: 2,
+				title: 'Move through statuses',
+				description: 'Track across offices and status changes.'
+			},
+			{
+				number: 3,
+				title: 'Inspect the timeline',
+				description: 'Full accountability at every step.'
+			}
+		]
+	};
 };
