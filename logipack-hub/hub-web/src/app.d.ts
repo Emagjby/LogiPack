@@ -5,6 +5,7 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			user?: { id: string; email: string } | null;
+			lang?: "en" | "bg";
 		}
 		// interface PageData {}
 		// interface PageState {}
@@ -12,4 +13,4 @@ declare global {
 	}
 }
 
-export {};
+export { };
