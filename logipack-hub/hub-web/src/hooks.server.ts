@@ -1,7 +1,23 @@
 import type { Handle } from "@sveltejs/kit";
+import { jwtDecrypt, EncryptJWT } from "jose";
+import {
+	AUTH0_DOMAIN,
+	AUTH0_CLIENT_ID,
+	AUTH0_CLIENT_SECRET,
+	SESSION_SECRET,
+} from "$env/static/private";
 
 const SUPPORTED = ["en", "bg"] as const;
 type Lang = (typeof SUPPORTED)[number];
+
+const enc = new TextEncoder();
+
+// Derive a 256-bit (32-byte) key from SESSION_SECRET using Web Crypto API
+async function deriveKey(secret: string): Promise<Uint8Array> {
+	const data = enc.encode(secret);
+	const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+	return new Uint8Array(hashBuffer);
+}
 
 function parseAcceptLanguage(header: string | null): string[] {
 	if (!header) return [];
@@ -20,52 +36,143 @@ function pickSupported(preferred: string[]): Lang | null {
 }
 
 function setLangCookie(event: Parameters<Handle>[0]["event"], lang: Lang) {
-	// persist preference for future visits to "/"
 	if (event.cookies.get("lang") !== lang) {
 		event.cookies.set("lang", lang, {
 			path: "/",
 			sameSite: "lax",
-			httpOnly: false, // set true if you never need to read it on client
+			httpOnly: false, // keep false if you read on client
 			secure: event.url.protocol === "https:",
-			maxAge: 60 * 60 * 24 * 365, // 1 year
+			maxAge: 60 * 60 * 24 * 365,
 		});
 	}
 }
 
+function isAuthRoute(pathname: string) {
+	return pathname === "/callback" || pathname === "/logout";
+}
+
+async function refreshAccessToken(refreshToken: string) {
+	const res = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		signal: AbortSignal.timeout(5000),
+		body: JSON.stringify({
+			grant_type: "refresh_token",
+			client_id: AUTH0_CLIENT_ID,
+			client_secret: AUTH0_CLIENT_SECRET,
+			refresh_token: refreshToken,
+		}),
+	});
+
+	if (!res.ok) return null;
+
+	return (await res.json()) as {
+		access_token: string;
+		expires_in: number;
+		id_token?: string;
+		refresh_token?: string; // rotation may return a new one
+		token_type: string;
+	};
+}
+
+async function signSession(payload: Record<string, unknown>, key: Uint8Array) {
+	return new EncryptJWT(payload)
+		.setProtectedHeader({ alg: "dir", enc: "A256GCM" })
+		.setIssuedAt()
+		.setExpirationTime("7d")
+		.encrypt(key);
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
 	const { url, cookies, request } = event;
+	const encryptionKey = await deriveKey(SESSION_SECRET);
 
 	const seg = url.pathname.split("/")[1];
 
-	// If already localized route, set locals + cookie and continue
 	if (SUPPORTED.includes(seg as Lang)) {
 		const lang = seg as Lang;
 		event.locals.lang = lang;
 		setLangCookie(event, lang);
-		return resolve(event);
+	} else {
+		const cookieLang = cookies.get("lang");
+		const accept = pickSupported(
+			parseAcceptLanguage(request.headers.get("accept-language")),
+		);
+
+		const lang =
+			(SUPPORTED.includes(cookieLang as Lang) ? (cookieLang as Lang) : null) ??
+			accept ??
+			"en";
+
+		if (!isAuthRoute(url.pathname)) {
+			if (url.pathname === "/") {
+				return new Response(null, {
+					status: 302,
+					headers: { location: `/${lang}${url.search}` },
+				});
+			}
+
+			return new Response(null, {
+				status: 302,
+				headers: { location: `/${lang}${url.pathname}${url.search}` },
+			});
+		}
+
+		event.locals.lang = lang;
+		setLangCookie(event, lang);
 	}
 
-	// Decide best lang for root / non-lang paths
-	const cookieLang = cookies.get("lang");
-	const accept = pickSupported(
-		parseAcceptLanguage(request.headers.get("accept-language")),
-	);
+	event.locals.session = null;
 
-	const lang =
-		(SUPPORTED.includes(cookieLang as Lang) ? (cookieLang as Lang) : null) ??
-		accept ??
-		"en";
+	const raw = cookies.get("lp_session");
+	if (raw) {
+		try {
+			const { payload } = await jwtDecrypt(raw, encryptionKey);
+			let session = payload as any;
 
-	// Redirect "/" (and optionally other non-lang paths)
-	if (url.pathname === "/") {
-		return new Response(null, {
-			status: 302,
-			headers: { location: `/${lang}` },
-		});
+			const now = Math.floor(Date.now() / 1000);
+			const expiresAt = Number(session.expires_at ?? 0);
+
+			// refresh 30s early to avoid edge-of-expiry failures
+			const shouldRefresh =
+				typeof session.refresh_token === "string" &&
+				expiresAt > 0 &&
+				expiresAt - now < 30;
+
+			if (shouldRefresh) {
+				const refreshed = await refreshAccessToken(session.refresh_token);
+				if (refreshed?.access_token) {
+					const newExpiresAt = now + (refreshed.expires_in ?? 3600);
+
+					session = {
+						...session,
+						access_token: refreshed.access_token,
+						expires_at: newExpiresAt,
+						id_token: refreshed.id_token ?? session.id_token,
+						refresh_token: refreshed.refresh_token ?? session.refresh_token,
+					};
+
+					const newJwt = await signSession(session, encryptionKey);
+
+					cookies.set("lp_session", newJwt, {
+						path: "/",
+						httpOnly: true,
+						sameSite: "lax",
+						secure: url.protocol === "https:",
+						maxAge: 60 * 60 * 24 * 7,
+					});
+				} else {
+					cookies.delete("lp_session", { path: "/" });
+					event.locals.session = null;
+					return resolve(event);
+				}
+			}
+
+			event.locals.session = session;
+		} catch {
+			cookies.delete("lp_session", { path: "/" });
+		}
 	}
 
-	return new Response(null, {
-		status: 302,
-		headers: { location: `/${lang}${url.pathname}` },
-	});
+	return resolve(event);
 };

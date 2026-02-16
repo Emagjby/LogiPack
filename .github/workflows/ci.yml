@@ -12,7 +12,7 @@ jobs:
   rust:
     name: rust (fmt, clippy, test, build)
     runs-on: ubuntu-latest
-    environment: TEST_AUTH0_PRIVATE_PEM
+    environment: Test
 
     services:
       postgres:
@@ -63,6 +63,13 @@ jobs:
     defaults:
       run:
         working-directory: logipack-hub/hub-web
+    env:
+      AUTH0_DOMAIN: example.eu.auth0.com
+      AUTH0_CLIENT_ID: dummy
+      AUTH0_CLIENT_SECRET: dummy
+      AUTH0_CALLBACK_URL: http://localhost:5173/callback
+      AUTH0_LOGOUT_URL: http://localhost:5173/
+      SESSION_SECRET: dummy_dummy_dummy_dummy_dummy_dummy_dummy_dummy
     steps:
       - uses: actions/checkout@v4
 

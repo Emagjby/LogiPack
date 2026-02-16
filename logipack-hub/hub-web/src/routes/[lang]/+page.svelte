@@ -175,7 +175,14 @@
 		aria-label="Primary navigation"
 		class="mx-auto flex md:max-w-6xl items-center justify-between rounded-xl border border-white/10 bg-surface-900/80 px-5 py-3 backdrop-blur-md"
 	>
-		<span class="text-lg font-bold text-surface-50">LogiPack</span>
+		<div class="flex items-center gap-3">
+			<img
+				src="https://raw.githubusercontent.com/Emagjby/logipack-assets/refs/heads/main/logipack-crate-green.png"
+				alt="LogiPack Logo"
+				class="h-6 w-6 rounded-sm object-cover"
+			/>
+			<span class="text-lg font-bold text-surface-50">LogiPack</span>
+		</div>
 		<div class="flex items-center gap-3">
 			<!-- Language dropdown -->
 			<div class="relative" data-lang-dropdown>
@@ -241,6 +248,7 @@
 
 			<a
 				href={data.loginUrl}
+				data-sveltekit-reload
 				class="cursor-pointer rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-surface-950 transition-colors duration-200 hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950"
 			>
 				{$_("hero.cta_primary")}
@@ -282,6 +290,7 @@
 				<div class="mt-8 flex items-center gap-4">
 					<a
 						href={data.loginUrl}
+						data-sveltekit-reload
 						class="cursor-pointer rounded-lg bg-accent px-6 py-3 font-semibold text-surface-950 transition-colors duration-200 hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950"
 					>
 						{$_("hero.cta_primary")}
