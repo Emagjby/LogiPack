@@ -46,9 +46,10 @@ async fn list_employees_handler(
     let dtos: Vec<EmployeeDto> = out
         .into_iter()
         .map(|employee| EmployeeDto {
-            id: employee.id.to_string(),
-            user_id: employee.user_id.to_string(),
-            full_name: employee.full_name,
+            id: employee.employee.id.to_string(),
+            user_id: employee.employee.user_id.to_string(),
+            name: employee.user.name,
+            email: employee.user.email,
         })
         .collect();
 
@@ -83,13 +84,12 @@ async fn get_employee_handler(
             }
         })?;
 
-    let employee =
-        out.ok_or_else(|| ApiError::not_found("employee_not_found", "Employee not found"))?;
     let result = GetEmployeeResponse {
         employee: EmployeeDto {
-            id: employee.id.to_string(),
-            user_id: employee.user_id.to_string(),
-            full_name: employee.full_name,
+            id: out.employee.id.to_string(),
+            user_id: out.employee.user_id.to_string(),
+            name: out.user.name,
+            email: out.user.email,
         },
     };
 
@@ -109,10 +109,7 @@ async fn create_employee_handler(
         .parse::<uuid::Uuid>()
         .map_err(|_| ApiError::bad_request("invalid_user_id", "User ID must be a valid UUID"))?;
 
-    let input = core_application::employees::create::CreateEmployee {
-        user_id,
-        full_name: request.full_name,
-    };
+    let input = core_application::employees::create::CreateEmployee { user_id };
 
     let employee_id =
         core_application::employees::create::create_employee(&state.db, &actor, input)
@@ -121,9 +118,6 @@ async fn create_employee_handler(
                 core_application::employees::create::CreateEmployeeError::Forbidden => {
                     ApiError::forbidden("access_denied", "Access denied")
                 }
-                core_application::employees::create::CreateEmployeeError::Validation(err) => {
-                    ApiError::bad_request("invalid_employee", err.to_string())
-                }
                 core_application::employees::create::CreateEmployeeError::EmployeeCreationError(
                     err,
                 ) => match err {
@@ -131,6 +125,9 @@ async fn create_employee_handler(
                         db_err,
                     ) => db_err.into(),
                     core_data::repository::employees_repo::EmployeeError::RecordNotFound => {
+                        ApiError::internal(err.to_string())
+                    }
+                    core_data::repository::employees_repo::EmployeeError::RelatedUserNotFound => {
                         ApiError::internal(err.to_string())
                     }
                 },
@@ -147,7 +144,7 @@ async fn update_employee_handler(
     State(state): State<AppState>,
     actor: ActorContext,
     Path(id): Path<String>,
-    Json(request): Json<UpdateEmployeeRequest>,
+    Json(_request): Json<UpdateEmployeeRequest>,
 ) -> Result<Json<UpdateEmployeeResponse>, ApiError> {
     policy::require_admin(&actor)
         .map_err(|_| ApiError::forbidden("access_denied", "Access denied"))?;
@@ -156,10 +153,7 @@ async fn update_employee_handler(
         ApiError::bad_request("invalid_employee_id", "Employee ID must be a valid UUID")
     })?;
 
-    let input = core_application::employees::update::UpdateEmployee {
-        id: employee_uuid,
-        full_name: request.full_name,
-    };
+    let input = core_application::employees::update::UpdateEmployee { id: employee_uuid };
 
     let out = core_application::employees::update::update_employee(&state.db, &actor, input)
         .await
@@ -169,9 +163,6 @@ async fn update_employee_handler(
             }
             core_application::employees::update::UpdateEmployeeError::Forbidden => {
                 ApiError::forbidden("access_denied", "Access denied")
-            }
-            core_application::employees::update::UpdateEmployeeError::Validation(err) => {
-                ApiError::bad_request("invalid_employee", err.to_string())
             }
             core_application::employees::update::UpdateEmployeeError::EmployeeError(err) => {
                 ApiError::internal(err.to_string())

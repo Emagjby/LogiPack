@@ -8,8 +8,12 @@ function isValidLocale(lang: string): lang is Locale {
 	return VALID_LOCALES.includes(lang as Locale);
 }
 
-export const load: LayoutLoad = async ({ params }) => {
+export const load: LayoutLoad = async ({ params, data }) => {
 	const lang = isValidLocale(params.lang) ? params.lang : "en";
 	await ensureI18n(lang);
-	return { lang };
+
+	return {
+		...data,
+		lang,
+	};
 };

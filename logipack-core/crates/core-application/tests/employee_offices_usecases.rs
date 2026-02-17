@@ -4,7 +4,10 @@ use core_application::employee_offices::list::{ListEmployeeOfficesError, list_em
 use core_application::employee_offices::remove::{RemoveOffice, RemoveOfficeError, remove_office};
 use core_application::roles::Role;
 use core_data::entity::{employees, offices, users};
-use sea_orm::{ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbBackend, Set, Statement};
+use sea_orm::{
+    ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbBackend, EntityTrait, IntoActiveModel,
+    Set, Statement,
+};
 use test_infra::test_db;
 use uuid::Uuid;
 
@@ -42,6 +45,7 @@ async fn seed_user(db: &DatabaseConnection, user_type: Option<String>) -> Uuid {
 
     users::ActiveModel {
         id: Set(id),
+        name: Set("Test User".into()),
         email: Set(Some(email)),
         password_hash: Set(Some("x".into())),
         auth0_sub: Set(None),
@@ -61,7 +65,6 @@ async fn seed_employee_record(db: &DatabaseConnection) -> Uuid {
     employees::ActiveModel {
         id: Set(id),
         user_id: Set(user_id),
-        full_name: Set("Test Employee".into()),
         created_at: Set(chrono::Utc::now().into()),
         updated_at: Set(chrono::Utc::now().into()),
         deleted_at: Set(None),
@@ -106,12 +109,19 @@ async fn admin_actor(db: &DatabaseConnection) -> ActorContext {
 
 async fn employee_actor(db: &DatabaseConnection) -> ActorContext {
     let user_id = seed_user(db, Some("employee".to_string())).await;
+    let user = users::Entity::find_by_id(user_id)
+        .one(db)
+        .await
+        .unwrap()
+        .unwrap();
+    let mut user_model = user.into_active_model();
+    user_model.name = Set("Employee Actor".into());
+    user_model.update(db).await.unwrap();
     let employee_id = Uuid::new_v4();
 
     employees::ActiveModel {
         id: Set(employee_id),
         user_id: Set(user_id),
-        full_name: Set("Employee Actor".into()),
         created_at: Set(chrono::Utc::now().into()),
         updated_at: Set(chrono::Utc::now().into()),
         deleted_at: Set(None),

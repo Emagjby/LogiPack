@@ -10,6 +10,7 @@ pub async fn seed_user(db: &DatabaseConnection) -> Uuid {
 
     users::ActiveModel {
         id: Set(id),
+        name: Set("Test User".into()),
         email: Set(Some(format!("user+{id}@test.com"))),
         password_hash: Set(Some("x".into())),
         auth0_sub: Set(None),
@@ -29,7 +30,6 @@ pub async fn seed_employee(db: &DatabaseConnection) -> Uuid {
     employees::ActiveModel {
         id: Set(id),
         user_id: Set(user_id),
-        full_name: Set("Test Employee".into()),
         created_at: Set(chrono::Utc::now().into()),
         updated_at: Set(chrono::Utc::now().into()),
         deleted_at: Set(None),
@@ -67,7 +67,6 @@ pub async fn seed_soft_deleted_employee(db: &DatabaseConnection) -> Uuid {
     employees::ActiveModel {
         id: Set(id),
         user_id: Set(user_id),
-        full_name: Set("Deleted Employee".into()),
         created_at: Set(chrono::Utc::now().into()),
         updated_at: Set(chrono::Utc::now().into()),
         deleted_at: Set(Some(chrono::Utc::now().into())),

@@ -4,13 +4,13 @@ use serde::{Deserialize, Serialize};
 pub struct EmployeeDto {
     pub id: String,
     pub user_id: String,
-    pub full_name: String,
+    pub name: String,
+    pub email: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateEmployeeRequest {
     pub user_id: String,
-    pub full_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,9 +29,7 @@ pub struct GetEmployeeResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct UpdateEmployeeRequest {
-    pub full_name: Option<String>,
-}
+pub struct UpdateEmployeeRequest {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateEmployeeResponse {

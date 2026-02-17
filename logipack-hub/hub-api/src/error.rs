@@ -2,6 +2,8 @@ use axum::{Json, http::StatusCode, response::IntoResponse};
 use core_application::shipments::{
     change_status::ChangeStatusError, create::CreateShipmentError, timeline::TimelineError,
 };
+use core_application::users::ensure_user::EnsureUserError;
+use core_application::users::me::MeError;
 use core_data::repository::shipments_repo::ShipmentSnapshotError;
 use serde::Serialize;
 
@@ -148,6 +150,36 @@ impl From<TimelineError> for ApiError {
     fn from(value: TimelineError) -> Self {
         match value {
             TimelineError::Read(e) => ApiError::internal(format!("eventstore read error: {e}")),
+        }
+    }
+}
+
+impl From<EnsureUserError> for ApiError {
+    fn from(err: EnsureUserError) -> Self {
+        match err {
+            EnsureUserError::Validation(v) => ApiError::bad_request("invalid_user", v.to_string()),
+            EnsureUserError::InvalidAuth0Sub => {
+                ApiError::bad_request("invalid_auth0_sub", "Invalid auth0 subject identifier")
+            }
+            EnsureUserError::EmailAlreadyLinked => ApiError::conflict(
+                "email_already_linked",
+                "Email already linked to another account",
+            ),
+            EnsureUserError::UserNotFound => {
+                ApiError::not_found("user_not_found", "User not found")
+            }
+            EnsureUserError::DbError(e) => ApiError::internal(e),
+        }
+    }
+}
+
+impl From<MeError> for ApiError {
+    fn from(err: MeError) -> Self {
+        match err {
+            MeError::NotFound => {
+                ApiError::not_found("user_not_provisioned", "User not provisioned")
+            }
+            MeError::DbError(e) => ApiError::internal(e.to_string()),
         }
     }
 }

@@ -4,26 +4,27 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use crate::actor::ActorContext;
-use crate::validation::employee::{EmployeeValidationError, validate_full_name};
 
 #[derive(Debug, Clone)]
 pub struct UpdateEmployee {
     pub id: Uuid,
-    pub full_name: Option<String>,
 }
 
 #[derive(Debug, Error)]
 pub enum UpdateEmployeeError {
     #[error("forbidden")]
     Forbidden,
-    #[error("validation error: {0}")]
-    Validation(#[from] EmployeeValidationError),
     #[error("not found")]
     NotFound,
     #[error("{0}")]
     EmployeeError(EmployeeError),
 }
 
+/// Updates an employee record.
+///
+/// Currently this only bumps `updated_at` (timestamp touch). No user-visible
+/// mutable fields are exposed yet — extend `UpdateEmployee` with fields such as
+/// role, name, etc. when the product requires it.
 pub async fn update_employee(
     db: &DatabaseConnection,
     actor: &ActorContext,
@@ -34,11 +35,7 @@ pub async fn update_employee(
         return Err(UpdateEmployeeError::Forbidden);
     }
 
-    if let Some(ref full_name) = input.full_name {
-        validate_full_name(full_name)?;
-    }
-
-    employees_repo::EmployeesRepo::update_employee(db, input.id, input.full_name)
+    employees_repo::EmployeesRepo::update_employee(db, input.id)
         .await
         .map_err(|e| match e {
             EmployeeError::RecordNotFound => UpdateEmployeeError::NotFound,

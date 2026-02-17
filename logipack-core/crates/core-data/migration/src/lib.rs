@@ -5,6 +5,7 @@ mod m2026_01_26_add_auth0_sub_to_users;
 mod m2026_01_27_email_nullable;
 mod m2026_01_27_password_hash_nullable;
 mod m2026_02_13_soft_delete;
+mod m2026_02_17_user_name;
 
 pub struct Migrator;
 
@@ -17,6 +18,7 @@ impl MigratorTrait for Migrator {
             Box::new(m2026_01_27_password_hash_nullable::Migration),
             Box::new(m2026_01_27_email_nullable::Migration),
             Box::new(m2026_02_13_soft_delete::Migration),
+            Box::new(m2026_02_17_user_name::Migration),
         ]
     }
 
