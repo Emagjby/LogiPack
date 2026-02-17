@@ -1,7 +1,4 @@
-use core_data::{
-    entity::employees,
-    repository::employees_repo::{self, EmployeeError},
-};
+use core_data::repository::employees_repo::{self, EmployeeError, EmployeeWithUser};
 use sea_orm::DatabaseConnection;
 use thiserror::Error;
 
@@ -21,7 +18,7 @@ pub async fn get_employee(
     db: &DatabaseConnection,
     actor: &ActorContext,
     id: uuid::Uuid,
-) -> Result<Option<employees::Model>, GetEmployeeError> {
+) -> Result<EmployeeWithUser, GetEmployeeError> {
     // Only admin can get employees
     if !actor.is_admin() {
         return Err(GetEmployeeError::Forbidden);

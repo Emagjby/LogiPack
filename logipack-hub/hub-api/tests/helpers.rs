@@ -45,6 +45,7 @@ pub async fn seed_auth0_user(db: &DatabaseConnection, auth0_sub: &str) {
 
     users::ActiveModel {
         id: Set(user_id),
+        name: Set("Test User".into()),
         email: Set(Some(format!("{}@test.com", user_id))),
         auth0_sub: Set(Some(auth0_sub.to_string())),
         password_hash: Set(Some("x".into())),
@@ -199,6 +200,7 @@ pub async fn setup_app_with_employee() -> (Router, ActorContext) {
     let user_id = Uuid::new_v4();
     users::ActiveModel {
         id: Set(user_id),
+        name: Set("Test User".into()),
         email: Set(Some("nobody@test.com".to_string())),
         password_hash: Set(Some("x".into())),
         auth0_sub: Set(None),
@@ -266,6 +268,7 @@ pub async fn setup_app() -> Router {
     // can resolve `x-dev-user-sub` without each test seeding a user.
     let _ = users::ActiveModel {
         id: Set(Uuid::new_v4()),
+        name: Set("Test User".into()),
         email: Set(Some("nobody@test.com".to_string())),
         auth0_sub: Set(None),
         password_hash: Set(Some("x".into())),
@@ -312,6 +315,7 @@ pub async fn seed_admin_actor(db: &DatabaseConnection) -> ActorContext {
     // user
     users::ActiveModel {
         id: Set(user_id),
+        name: Set("Test User".into()),
         email: Set(Some(format!("admin+{}@test.com", user_id))),
         auth0_sub: Set(None),
         password_hash: Set(Some("x".into())),
@@ -380,6 +384,7 @@ pub async fn seed_employee(db: &DatabaseConnection) -> ActorContext {
     // user
     users::ActiveModel {
         id: Set(user_id),
+        name: Set("Test User".into()),
         email: Set(Some(format!("employee+{}@test.com", user_id))),
         password_hash: Set(Some("x".into())),
         auth0_sub: Set(None),
@@ -485,7 +490,6 @@ pub async fn seed_employee_record(db: &DatabaseConnection) -> Uuid {
     employees::ActiveModel {
         id: Set(id),
         user_id: Set(user_id),
-        full_name: Set("Test Employee".into()),
         created_at: Set(chrono::Utc::now().into()),
         updated_at: Set(chrono::Utc::now().into()),
         deleted_at: Set(None),
@@ -505,6 +509,7 @@ pub async fn seed_user_for_employee(db: &DatabaseConnection) -> Uuid {
 
     users::ActiveModel {
         id: Set(id),
+        name: Set("Test User".into()),
         email: Set(Some(format!("user+{}@test.com", id))),
         auth0_sub: Set(None),
         password_hash: Set(Some("x".into())),

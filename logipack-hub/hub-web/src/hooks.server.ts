@@ -1,9 +1,11 @@
 import type { Handle } from "@sveltejs/kit";
+import { parseSession, type LpSession } from "$lib/server/session.server";
 import { jwtDecrypt, EncryptJWT } from "jose";
 import {
 	AUTH0_DOMAIN,
 	AUTH0_CLIENT_ID,
 	AUTH0_CLIENT_SECRET,
+	AUTH0_AUDIENCE,
 	SESSION_SECRET,
 } from "$env/static/private";
 
@@ -12,7 +14,6 @@ type Lang = (typeof SUPPORTED)[number];
 
 const enc = new TextEncoder();
 
-// Derive a 256-bit (32-byte) key from SESSION_SECRET using Web Crypto API
 async function deriveKey(secret: string): Promise<Uint8Array> {
 	const data = enc.encode(secret);
 	const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -40,7 +41,7 @@ function setLangCookie(event: Parameters<Handle>[0]["event"], lang: Lang) {
 		event.cookies.set("lang", lang, {
 			path: "/",
 			sameSite: "lax",
-			httpOnly: false, // keep false if you read on client
+			httpOnly: false,
 			secure: event.url.protocol === "https:",
 			maxAge: 60 * 60 * 24 * 365,
 		});
@@ -61,6 +62,7 @@ async function refreshAccessToken(refreshToken: string) {
 			client_id: AUTH0_CLIENT_ID,
 			client_secret: AUTH0_CLIENT_SECRET,
 			refresh_token: refreshToken,
+			audience: AUTH0_AUDIENCE,
 		}),
 	});
 
@@ -70,7 +72,7 @@ async function refreshAccessToken(refreshToken: string) {
 		access_token: string;
 		expires_in: number;
 		id_token?: string;
-		refresh_token?: string; // rotation may return a new one
+		refresh_token?: string;
 		token_type: string;
 	};
 }
@@ -83,11 +85,29 @@ async function signSession(payload: Record<string, unknown>, key: Uint8Array) {
 		.encrypt(key);
 }
 
+function isBypassPath(pathname: string) {
+	return (
+		pathname.startsWith("/_app") ||
+		pathname.startsWith("/@") ||
+		pathname.startsWith("/favicon") ||
+		pathname === "/robots.txt" ||
+		pathname.startsWith("/sitemap") ||
+		pathname.startsWith("/manifest") ||
+		pathname.startsWith("/assets") ||
+		pathname.startsWith("/fonts") ||
+		pathname.startsWith("/images")
+	);
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
 	const { url, cookies, request } = event;
 	const encryptionKey = await deriveKey(SESSION_SECRET);
 
 	const seg = url.pathname.split("/")[1];
+
+	if (isBypassPath(url.pathname)) {
+		return resolve(event);
+	}
 
 	if (SUPPORTED.includes(seg as Lang)) {
 		const lang = seg as Lang;
@@ -128,23 +148,28 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (raw) {
 		try {
 			const { payload } = await jwtDecrypt(raw, encryptionKey);
-			let session = payload as any;
+			let session = parseSession(payload);
+
+			if (!session) {
+				cookies.delete("lp_session", { path: "/" });
+				event.locals.session = null;
+				return resolve(event);
+			}
 
 			const now = Math.floor(Date.now() / 1000);
 			const expiresAt = Number(session.expires_at ?? 0);
 
-			// refresh 30s early to avoid edge-of-expiry failures
 			const shouldRefresh =
 				typeof session.refresh_token === "string" &&
 				expiresAt > 0 &&
 				expiresAt - now < 30;
 
 			if (shouldRefresh) {
-				const refreshed = await refreshAccessToken(session.refresh_token);
+				const refreshed = await refreshAccessToken(session.refresh_token ?? "");
 				if (refreshed?.access_token) {
 					const newExpiresAt = now + (refreshed.expires_in ?? 3600);
 
-					session = {
+					const nextPayload = {
 						...session,
 						access_token: refreshed.access_token,
 						expires_at: newExpiresAt,
@@ -152,7 +177,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 						refresh_token: refreshed.refresh_token ?? session.refresh_token,
 					};
 
-					const newJwt = await signSession(session, encryptionKey);
+					const parsed = parseSession(nextPayload);
+					if (!parsed) {
+						cookies.delete("lp_session", { path: "/" });
+						event.locals.session = null;
+						return resolve(event);
+					}
+
+					session = parsed;
+
+					const newJwt = await signSession(nextPayload, encryptionKey);
 
 					cookies.set("lp_session", newJwt, {
 						path: "/",

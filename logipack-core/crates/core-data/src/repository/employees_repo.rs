@@ -6,7 +6,7 @@ use sea_orm::{
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::entity::employees;
+use crate::entity::{employees, users};
 
 #[derive(Debug, Error)]
 pub enum EmployeeError {
@@ -14,6 +14,14 @@ pub enum EmployeeError {
     EmployeeDbError(#[from] DbErr),
     #[error("employee not found")]
     RecordNotFound,
+    #[error("related user not found for employee")]
+    RelatedUserNotFound,
+}
+
+#[derive(Debug, Clone)]
+pub struct EmployeeWithUser {
+    pub employee: employees::Model,
+    pub user: users::Model,
 }
 
 pub struct EmployeesRepo;
@@ -24,12 +32,10 @@ impl EmployeesRepo {
         db: &DatabaseConnection,
         id: Uuid,
         user_id: Uuid,
-        full_name: String,
     ) -> Result<(), EmployeeError> {
         let model = employees::ActiveModel {
             id: Set(id),
             user_id: Set(user_id),
-            full_name: Set(full_name),
             created_at: Set(chrono::Utc::now().into()),
             updated_at: Set(chrono::Utc::now().into()),
             deleted_at: Set(None),
@@ -43,43 +49,51 @@ impl EmployeesRepo {
     pub async fn get_employee_by_id(
         db: &DatabaseConnection,
         id: Uuid,
-    ) -> Result<Option<employees::Model>, EmployeeError> {
-        let retrieved = employees::Entity::find_by_id(id).one(db).await?;
+    ) -> Result<EmployeeWithUser, EmployeeError> {
+        let retrieved = employees::Entity::find_by_id(id)
+            .filter(employees::Column::DeletedAt.is_null())
+            .find_also_related(users::Entity)
+            .one(db)
+            .await?;
 
-        if retrieved.is_none() || retrieved.as_ref().unwrap().deleted_at.is_some() {
-            return Err(EmployeeError::RecordNotFound);
-        }
+        let (employee, user) = match retrieved {
+            Some((employee, Some(user))) => (employee, user),
+            _ => return Err(EmployeeError::RecordNotFound),
+        };
 
-        Ok(retrieved)
+        Ok(EmployeeWithUser { employee, user })
     }
 
     /// Lists all employees
     pub async fn list_employees(
         db: &DatabaseConnection,
-    ) -> Result<Vec<employees::Model>, EmployeeError> {
+    ) -> Result<Vec<EmployeeWithUser>, EmployeeError> {
         let retrieved = employees::Entity::find()
             .filter(employees::Column::DeletedAt.is_null())
+            .find_also_related(users::Entity)
             .all(db)
             .await?;
-        Ok(retrieved)
+
+        let mut employees_with_users = Vec::with_capacity(retrieved.len());
+        for (employee, user) in retrieved {
+            let user = user.ok_or(EmployeeError::RelatedUserNotFound)?;
+            employees_with_users.push(EmployeeWithUser { employee, user });
+        }
+
+        Ok(employees_with_users)
     }
 
-    /// Updates an employee's information
-    pub async fn update_employee(
-        db: &DatabaseConnection,
-        id: Uuid,
-        full_name: Option<String>,
-    ) -> Result<(), EmployeeError> {
+    /// Updates an employee's `updated_at` timestamp (touch).
+    ///
+    /// Currently no user-visible fields are modified — this acts as a
+    /// timestamp bump only. Extend when mutable employee fields are added.
+    pub async fn update_employee(db: &DatabaseConnection, id: Uuid) -> Result<(), EmployeeError> {
         let mut model = employees::Entity::find_by_id(id)
             .filter(employees::Column::DeletedAt.is_null())
             .one(db)
             .await?
             .ok_or(EmployeeError::RecordNotFound)?
             .into_active_model();
-
-        if let Some(full_name) = full_name {
-            model.full_name = Set(full_name);
-        }
 
         model.updated_at = Set(chrono::Utc::now().into());
 

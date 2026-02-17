@@ -27,12 +27,7 @@ async fn admin_can_update_employee() {
                 .header("content-type", "application/json")
                 .method(Method::PUT)
                 .uri(format!("/admin/employees/{}", employee_id))
-                .body(Body::from(
-                    serde_json::to_vec(&json!({
-                        "full_name": "Updated Employee"
-                    }))
-                    .unwrap(),
-                ))
+                .body(Body::from(serde_json::to_vec(&json!({})).unwrap()))
                 .unwrap(),
         )
         .await
@@ -58,12 +53,7 @@ async fn admin_update_employee_invalid_uuid() {
                 .header("content-type", "application/json")
                 .method(Method::PUT)
                 .uri("/admin/employees/not-a-uuid")
-                .body(Body::from(
-                    serde_json::to_vec(&json!({
-                        "full_name": "Updated Employee"
-                    }))
-                    .unwrap(),
-                ))
+                .body(Body::from(serde_json::to_vec(&json!({})).unwrap()))
                 .unwrap(),
         )
         .await
@@ -84,12 +74,7 @@ async fn admin_update_employee_not_found() {
                 .header("content-type", "application/json")
                 .method(Method::PUT)
                 .uri(format!("/admin/employees/{}", Uuid::new_v4()))
-                .body(Body::from(
-                    serde_json::to_vec(&json!({
-                        "full_name": "Updated Employee"
-                    }))
-                    .unwrap(),
-                ))
+                .body(Body::from(serde_json::to_vec(&json!({})).unwrap()))
                 .unwrap(),
         )
         .await
@@ -133,12 +118,7 @@ async fn employee_cannot_update_employee() {
                 .header("content-type", "application/json")
                 .method(Method::PUT)
                 .uri(format!("/admin/employees/{}", employee_id))
-                .body(Body::from(
-                    serde_json::to_vec(&json!({
-                        "full_name": "Updated Employee"
-                    }))
-                    .unwrap(),
-                ))
+                .body(Body::from(serde_json::to_vec(&json!({})).unwrap()))
                 .unwrap(),
         )
         .await
@@ -160,12 +140,7 @@ async fn no_role_cannot_update_employee() {
                 .header("content-type", "application/json")
                 .method(Method::PUT)
                 .uri(format!("/admin/employees/{}", employee_id))
-                .body(Body::from(
-                    serde_json::to_vec(&json!({
-                        "full_name": "Updated Employee"
-                    }))
-                    .unwrap(),
-                ))
+                .body(Body::from(serde_json::to_vec(&json!({})).unwrap()))
                 .unwrap(),
         )
         .await

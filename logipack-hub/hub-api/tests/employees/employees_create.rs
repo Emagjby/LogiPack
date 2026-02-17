@@ -29,7 +29,6 @@ async fn admin_can_create_employee() {
                 .body(Body::from(
                     serde_json::to_vec(&json!({
                         "user_id": user_id.to_string(),
-                        "full_name": "Test Employee",
                     }))
                     .unwrap(),
                 ))
@@ -63,7 +62,6 @@ async fn employee_cannot_create_employee() {
                 .body(Body::from(
                     serde_json::to_vec(&json!({
                         "user_id": user_id.to_string(),
-                        "full_name": "Test Employee",
                     }))
                     .unwrap(),
                 ))
@@ -91,7 +89,6 @@ async fn no_role_cannot_create_employee() {
                 .body(Body::from(
                     serde_json::to_vec(&json!({
                         "user_id": user_id.to_string(),
-                        "full_name": "Test Employee",
                     }))
                     .unwrap(),
                 ))

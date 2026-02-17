@@ -69,7 +69,9 @@ jobs:
       AUTH0_CLIENT_SECRET: dummy
       AUTH0_CALLBACK_URL: http://localhost:5173/callback
       AUTH0_LOGOUT_URL: http://localhost:5173/
+      AUTH0_AUDIENCE: dummydummydummy
       SESSION_SECRET: dummy_dummy_dummy_dummy_dummy_dummy_dummy_dummy
+      HUB_API_BASE: http://localhost:8080/
     steps:
       - uses: actions/checkout@v4
 

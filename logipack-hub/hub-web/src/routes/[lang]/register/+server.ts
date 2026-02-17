@@ -4,6 +4,7 @@ import {
     AUTH0_DOMAIN,
     AUTH0_CLIENT_ID,
     AUTH0_CALLBACK_URL,
+    AUTH0_AUDIENCE,
 } from "$env/static/private";
 
 const SUPPORTED = new Set(["en", "bg"]);
@@ -20,6 +21,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
     authorize.searchParams.set("response_type", "code");
     authorize.searchParams.set("client_id", AUTH0_CLIENT_ID);
     authorize.searchParams.set("redirect_uri", AUTH0_CALLBACK_URL);
+    authorize.searchParams.set("audience", AUTH0_AUDIENCE);
     authorize.searchParams.set("scope", "openid profile email offline_access");
     authorize.searchParams.set("ui_locales", locale);
     authorize.searchParams.set("screen_hint", "signup");
