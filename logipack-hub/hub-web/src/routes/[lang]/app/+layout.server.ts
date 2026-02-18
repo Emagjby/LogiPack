@@ -1,20 +1,25 @@
 import type { LayoutServerLoad } from "./$types";
+import type { Me, Role } from "$lib/types/console";
 import { redirect } from "@sveltejs/kit";
 
-export const load: LayoutServerLoad = async ({ locals, params }) => {
-	const s = locals.session as {
-		role: string;
-		email: string;
-		name: string;
-	} | null;
+const VALID_ROLES: readonly Role[] = ["admin", "employee"];
 
-	const lang = params.lang ?? "en";
+export const load: LayoutServerLoad = async ({ locals, url }) => {
+	if (!locals.session) {
+		throw redirect(302, `/?redirect=${url.pathname}${url.search}`);
+	}
 
-	if (!s) throw redirect(302, `/${lang}/login`);
+	const session = (locals.session ?? null) as Me | null;
+
+	const hasValidRole = session?.role && VALID_ROLES.includes(session.role);
+	const isNoAccessRoute = /\/app\/no-access(\/|$)/.test(url.pathname);
+
+	if (!hasValidRole && !isNoAccessRoute) {
+		throw redirect(302, `/${url.pathname.split("/")[1] ?? "en"}/app/no-access`);
+	}
 
 	return {
-		role: s.role,
-		email: s.email,
-		name: s.name,
+		session,
+		pathname: url.pathname,
 	};
 };
