@@ -1,20 +1,28 @@
 <script lang="ts">
+	import { _ } from "svelte-i18n";
+
 	let { pathname, lang }: { pathname: string; lang: string } = $props();
+	const locales = [
+		{ code: "en", labelKey: "navbar.locale_en" },
+		{ code: "bg", labelKey: "navbar.locale_bg" },
+	] as const;
+
+	type Locale = (typeof locales)[number]["code"];
 
 	interface NavItem {
-		label: string;
+		labelKey: string;
 		href: string;
 		icon: "dashboard" | "shipments";
 	}
 
 	const navItems: NavItem[] = $derived([
 		{
-			label: "Dashboard",
+			labelKey: "navbar.item.dashboard",
 			href: `/${lang}/app/employee`,
 			icon: "dashboard" as const,
 		},
 		{
-			label: "Shipments",
+			labelKey: "navbar.item.shipments",
 			href: `/${lang}/app/employee/shipments`,
 			icon: "shipments" as const,
 		},
@@ -25,6 +33,24 @@
 			pathname === href ||
 			(href !== `/${lang}/app/employee` && pathname.startsWith(href))
 		);
+	}
+
+	function changeLanguage(nextLang: Locale): void {
+		if (nextLang === lang) return;
+
+		const secure = window.location.protocol === "https:" ? "; secure" : "";
+		document.cookie = `lang=${nextLang}; path=/; max-age=31536000; samesite=lax${secure}`;
+
+		const localePattern = locales
+			.map((locale) =>
+				locale.code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+			)
+			.join("|");
+		const nextPath = pathname.replace(
+			new RegExp(`^/(${localePattern})(?=/|$)`),
+			`/${nextLang}`,
+		);
+		window.location.href = `${nextPath}${window.location.search}`;
 	}
 </script>
 
@@ -53,7 +79,7 @@
 		<span
 			class="mb-2 block px-3 text-[10px] font-medium uppercase tracking-widest text-surface-600"
 		>
-			Operations
+			{$_("navbar.section.operations")}
 		</span>
 
 		{#each navItems as item (item.href)}
@@ -110,13 +136,36 @@
 					</svg>
 				{/if}
 
-				<span>{item.label}</span>
+				<span>{$_(item.labelKey)}</span>
 			</a>
 		{/each}
 	</nav>
 
 	<!-- Bottom section -->
-	<div class="mt-auto px-5 py-3">
-		<span class="text-[10px] text-surface-700">v0.1.0</span>
+	<div class="mt-auto px-3 py-3">
+		<div class="rounded-lg border border-surface-800 bg-surface-900/40 px-2.5 py-2">
+			<span class="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-surface-600">
+				{$_("navbar.language")}
+			</span>
+			<div class="grid grid-cols-2 gap-1.5">
+				{#each locales as locale (locale.code)}
+					<button
+						type="button"
+						onclick={() => changeLanguage(locale.code)}
+						class={[
+							"cursor-pointer rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50",
+							lang === locale.code
+								? "bg-surface-700 text-surface-100"
+								: "bg-surface-800/70 text-surface-400 hover:bg-surface-800 hover:text-surface-200",
+						]}
+						aria-label={$_(locale.labelKey)}
+						aria-pressed={lang === locale.code}
+					>
+						{$_(locale.labelKey)}
+					</button>
+				{/each}
+			</div>
+		</div>
+		<span class="mt-2 block px-2 text-[10px] text-surface-700">v0.1.0</span>
 	</div>
 </aside>

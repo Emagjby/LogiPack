@@ -1,4 +1,9 @@
 <script lang="ts">
+	import { onDestroy } from "svelte";
+	import { goto } from "$app/navigation";
+	import { page } from "$app/state";
+	import { _ } from "svelte-i18n";
+
 	let {
 		pathname,
 		session,
@@ -16,6 +21,26 @@
 		return seg.charAt(0).toUpperCase() + seg.slice(1);
 	}
 
+	const segmentLabelKeys: Record<string, string> = {
+		employee: "navbar.page.dashboard",
+		shipments: "navbar.page.shipments",
+	};
+
+	const roleLabelKeys: Record<string, string> = {
+		employee: "navbar.role.employee",
+		admin: "navbar.role.admin",
+	};
+
+	function getSegmentLabel(seg: string): string {
+		const key = segmentLabelKeys[seg.toLowerCase()];
+		return key ? $_(key) : formatSegment(seg);
+	}
+
+	function getRoleLabel(role: string): string {
+		const key = roleLabelKeys[role.toLowerCase()];
+		return key ? $_(key) : role;
+	}
+
 	let segments = $derived(
 		pathname
 			.replace(new RegExp(`^/${lang}/app/?`), "")
@@ -23,20 +48,8 @@
 			.filter(Boolean),
 	);
 
-	let breadcrumbs = $derived(
-		segments.map((seg, i) => ({
-			label: formatSegment(seg),
-			href: `/${lang}/app/${segments.slice(0, i + 1).join("/")}`,
-			isLast: i === segments.length - 1,
-		})),
-	);
-
-	let pageTitle = $derived(
-		segments.length === 0
-			? "Overview"
-			: segments.length === 1 && segments[0] === "employee"
-				? "Dashboard"
-				: formatSegment(segments[segments.length - 1]),
+	let pageTitleSegment = $derived(
+		segments.length === 0 ? null : segments[segments.length - 1],
 	);
 
 	let userEmail = $derived(session?.email ?? "user@unknown");
@@ -47,6 +60,30 @@
 	let userRole = $derived(session?.role ?? "employee");
 
 	let dropdownOpen = $state(false);
+	let searchValue = $state("");
+	let searchTimer: ReturnType<typeof setTimeout> | null = null;
+	let isSearchFocused = $state(false);
+
+	let isShipmentsListPage = $derived(
+		/^\/[^/]+\/app\/employee\/shipments\/?$/.test(pathname),
+	);
+	let querySearchValue = $derived(page.url.searchParams.get("q") ?? "");
+
+	$effect(() => {
+		if (!isShipmentsListPage) {
+			searchValue = "";
+			return;
+		}
+		if (isSearchFocused) return;
+		searchValue = querySearchValue;
+	});
+
+	onDestroy(() => {
+		if (searchTimer) {
+			clearTimeout(searchTimer);
+			searchTimer = null;
+		}
+	});
 
 	function handleClickOutside(event: MouseEvent) {
 		const target = event.target as HTMLElement;
@@ -58,53 +95,54 @@
 	function logout() {
 		window.location.href = `/logout`;
 	}
+
+	function updateShipmentsSearch(next: string) {
+		searchValue = next;
+		if (!isShipmentsListPage) return;
+		if (searchTimer) clearTimeout(searchTimer);
+		searchTimer = setTimeout(async () => {
+			const url = new URL(page.url);
+			const trimmed = next.trim();
+			if (trimmed) {
+				url.searchParams.set("q", trimmed);
+			} else {
+				url.searchParams.delete("q");
+			}
+			const nextHref = `${url.pathname}${url.search}`;
+			const currentHref = `${page.url.pathname}${page.url.search}`;
+			if (nextHref === currentHref) {
+				searchTimer = null;
+				return;
+			}
+			await goto(nextHref, {
+				replaceState: true,
+				keepFocus: true,
+				noScroll: true,
+			});
+			searchTimer = null;
+		}, 180);
+	}
 </script>
 
 <svelte:document onclick={handleClickOutside} />
 
 <header
-	class="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-surface-800 bg-surface-900/95 backdrop-blur-sm px-6"
+	class="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-surface-800 bg-surface-900/95 backdrop-blur-sm px-6"
 >
-	<!-- Left side: Page title + breadcrumb -->
+	<!-- Left side: Page title -->
 	<div class="flex flex-col justify-center min-w-0">
 		<h1 class="text-sm font-semibold text-surface-50 truncate">
-			{pageTitle}
+			{#if pageTitleSegment === null}
+				{$_("navbar.page.overview")}
+			{:else}
+				{getSegmentLabel(pageTitleSegment)}
+			{/if}
 		</h1>
-		{#if breadcrumbs.length > 0}
-			<nav class="flex items-center gap-1 text-[11px] text-surface-500">
-				{#each breadcrumbs as crumb, i (crumb.href)}
-					{#if i > 0}
-						<svg
-							class="h-3 w-3 text-surface-700 shrink-0"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-					{/if}
-					{#if crumb.isLast}
-						<span class="text-surface-400 truncate"
-							>{crumb.label}</span
-						>
-					{:else}
-						<a
-							href={crumb.href}
-							class="text-surface-500 hover:text-surface-300 transition-colors duration-150 truncate"
-							>{crumb.label}</a
-						>
-					{/if}
-				{/each}
-			</nav>
-		{/if}
 	</div>
 
 	<!-- Right side: Search + User chip + Logout -->
 	<div class="flex items-center gap-3">
-		<!-- Search input (placeholder, non-functional) -->
+		<!-- Search input -->
 		<div class="relative hidden sm:block">
 			<svg
 				class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-surface-600 pointer-events-none"
@@ -118,9 +156,22 @@
 			</svg>
 			<input
 				type="text"
-				placeholder="Search..."
-				disabled
-				class="h-8 w-44 rounded-md border border-surface-700/50 bg-surface-800/50 pl-8 pr-3 text-xs text-surface-400 placeholder:text-surface-600 focus:outline-none cursor-not-allowed"
+				value={searchValue}
+				onfocus={() => {
+					isSearchFocused = true;
+				}}
+				onblur={() => {
+					isSearchFocused = false;
+				}}
+				oninput={(e) =>
+					updateShipmentsSearch((e.currentTarget as HTMLInputElement).value)}
+				placeholder={
+					isShipmentsListPage
+						? $_("shipments.search_placeholder")
+						: $_("navbar.search_placeholder")
+				}
+				disabled={!isShipmentsListPage}
+				class="h-8 w-44 rounded-md border border-surface-700/50 bg-surface-800/50 pl-8 pr-3 text-xs text-surface-400 placeholder:text-surface-600 focus:outline-none disabled:cursor-not-allowed"
 			/>
 		</div>
 
@@ -128,7 +179,7 @@
 		<div class="hidden sm:block h-5 w-px bg-surface-800"></div>
 
 		<!-- User menu -->
-		<div class="relative" data-user-menu>
+		<div class="relative z-50" data-user-menu>
 			<button
 				onclick={() => (dropdownOpen = !dropdownOpen)}
 				class="flex cursor-pointer items-center gap-2 rounded-lg bg-surface-800/60 py-1.5 pl-1.5 pr-3 transition-colors duration-150 hover:bg-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50"
@@ -164,7 +215,7 @@
 			<!-- Dropdown -->
 			{#if dropdownOpen}
 				<div
-					class="absolute right-0 top-full mt-1.5 w-56 rounded-lg border border-surface-700/50 bg-surface-900 shadow-lg shadow-black/30"
+					class="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-surface-700/50 bg-surface-900 shadow-lg shadow-black/30"
 				>
 					<!-- User info -->
 					<div class="border-b border-surface-800 px-3 py-2.5">
@@ -178,7 +229,7 @@
 						</p>
 						<span
 							class="mt-1 inline-block rounded-full bg-surface-800 px-2 py-0.5 text-[10px] font-medium capitalize text-surface-400"
-							>{userRole}</span
+							>{getRoleLabel(userRole)}</span
 						>
 					</div>
 
@@ -197,7 +248,7 @@
 									fill="currentColor"
 								/></svg
 							>
-							Sign out
+							{$_("navbar.sign_out")}
 						</button>
 					</div>
 				</div>
