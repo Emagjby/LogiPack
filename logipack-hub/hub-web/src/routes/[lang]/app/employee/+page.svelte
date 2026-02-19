@@ -2,6 +2,11 @@
 	import type { PageData } from "./$types";
 	import { goto } from "$app/navigation";
 	import { _ } from "svelte-i18n";
+	import ShipmentStatusBadge from "$lib/components/app/ShipmentStatusBadge.svelte";
+	import {
+		normalizeShipmentStatus,
+		statusDotClass,
+	} from "$lib/domain/shipmentStatus";
 
 	let { data }: { data: PageData } = $props();
 
@@ -20,11 +25,12 @@
 	);
 
 	let minutesAgo = $derived.by(() => {
-		if (typeof globalThis.window === "undefined") return "just now";
+		if (typeof globalThis.window === "undefined")
+			return $_("common.just_now");
 		const diff = Date.now() - new Date(data.lastRefresh).getTime();
 		const mins = Math.max(0, Math.floor(diff / 60000));
-		if (mins === 0) return "just now";
-		return `${mins}m ago`;
+		if (mins === 0) return $_("common.just_now");
+		return $_("common.minutes_ago", { values: { minutes: mins } });
 	});
 
 	function handleRefresh() {
@@ -58,52 +64,21 @@
 		return { line, area };
 	}
 
-	const filterOptions: {
-		label: string;
-		value: "all" | "in-transit" | "pending" | "delivered";
-	}[] = [
+	let filterOptions = $derived<
+		{
+			label: string;
+			value: "all" | "in-transit" | "pending" | "delivered";
+		}[]
+	>([
 		{ label: $_("all"), value: "all" },
 		{ label: $_("in-transit"), value: "in-transit" },
 		{ label: $_("pending"), value: "pending" },
 		{ label: $_("delivered"), value: "delivered" },
-	];
-
-	function statusClasses(status: string): string {
-		if (status === "in-transit") return "bg-blue-500/10 text-blue-400";
-		if (status === "delivered") return "bg-accent/10 text-accent";
-		if (status === "pending") return "bg-amber-500/10 text-amber-400";
-		return "bg-surface-700/50 text-surface-600";
-	}
-
-	function statusLabel(status: string): string {
-		if (status === "in-transit") return $_("in-transit");
-		if (status === "delivered") return $_("delivered");
-		if (status === "pending") return $_("pending");
-		return "unknown";
-	}
-
-	function normalize_tag(tag: string): string {
-		if (tag === "In Transit") return $_("in-transit");
-		if (tag === "Delivered") return $_("delivered");
-		if (tag === "Pending") return $_("pending");
-		if (tag === "Cancelled") return $_("cancelled");
-		return tag;
-	}
-
-	function tagClasses(tag: string): string {
-		if (tag === "In Transit") return "bg-blue-500/10 text-blue-400";
-		if (tag === "Delivered") return "bg-accent/10 text-accent";
-		if (tag === "Pending") return "bg-amber-500/10 text-amber-400";
-		if (tag === "Cancelled") return "bg-red-500/10 text-red-400";
-		return "";
-	}
+	]);
 
 	function dotColor(tag: string | null): string {
-		if (tag === "In Transit") return "bg-blue-500/80";
-		if (tag === "Delivered") return "bg-accent/80";
-		if (tag === "Pending") return "bg-amber-500/80";
-		if (tag === "Cancelled") return "bg-red-500/80";
-		return "bg-surface-600";
+		if (!tag) return "bg-surface-600";
+		return statusDotClass(normalizeShipmentStatus(tag));
 	}
 </script>
 
@@ -406,11 +381,11 @@
 								colspan="6"
 								class="py-8 text-center text-sm text-surface-600"
 							>
-								No shipments match this filter
+								{$_("empd.no_shipments_for_filter")}
 								<a
 									href={`/${lang}/app/employee/shipments`}
 									class="ml-1 text-accent hover:text-accent-hover"
-									>View all shipments</a
+									>{$_("empd.view_all_shipments")}</a
 								>
 							</td>
 						</tr>
@@ -438,14 +413,7 @@
 									>{shipment.destination}</td
 								>
 								<td class="px-5 py-3">
-									<span
-										class={[
-											"rounded-full px-2 py-0.5 text-xs font-medium",
-											statusClasses(shipment.status),
-										]}
-									>
-										{statusLabel(shipment.status)}
-									</span>
+									<ShipmentStatusBadge status={shipment.status} />
 								</td>
 								<td class="px-5 py-3 text-sm text-surface-400"
 									>{shipment.eta}</td
@@ -519,14 +487,10 @@
 										>{item.time}</span
 									>
 									{#if item.tag}
-										<span
-											class={[
-												"rounded px-1.5 py-0.5 text-[10px] font-medium",
-												tagClasses(item.tag),
-											]}
-										>
-											{normalize_tag(item.tag)}
-										</span>
+										<ShipmentStatusBadge
+											status={item.tag}
+											compact={true}
+										/>
 									{/if}
 								</div>
 							</div>
