@@ -338,7 +338,7 @@
 							"cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
 							shipmentFilter === opt.value
 								? "bg-accent/10 text-accent"
-								: "text-surface-600 hover:bg-surface-800 hover:text-surface-300",
+								: "text-surface-600 hover:bg-surface-800 hover:text-surface-400",
 						]}
 					>
 						{opt.label}
@@ -501,7 +501,7 @@
 		{/if}
 		<div class="border-t border-surface-800 px-5 py-3 text-center">
 			<button
-				class="cursor-pointer text-xs text-surface-600 transition-colors hover:text-surface-300"
+				class="cursor-pointer text-xs text-surface-600 transition-colors hover:text-surface-400"
 				>{$_("show-more")}</button
 			>
 		</div>

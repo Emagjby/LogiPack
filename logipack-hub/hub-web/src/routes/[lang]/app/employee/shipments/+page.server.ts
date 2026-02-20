@@ -83,7 +83,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 
 	// Role guard: admin should not access employee pages
 	if (session?.role === "admin") {
-		throw error(403, "This page is only accessible to employees.");
+		throw error(403, "error.details.employee_only");
 	}
 
 	try {

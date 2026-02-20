@@ -191,7 +191,7 @@
 					aria-label="Change language"
 					aria-expanded={dropdownOpen}
 					aria-haspopup="listbox"
-					class="cursor-pointer flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-2 text-sm font-medium text-surface-300 transition-colors duration-200 hover:border-white/20 hover:text-surface-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950"
+					class="cursor-pointer flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-2 text-sm font-medium text-surface-400 transition-colors duration-200 hover:border-white/20 hover:text-surface-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950"
 					onclick={() => (dropdownOpen = !dropdownOpen)}
 				>
 					<img

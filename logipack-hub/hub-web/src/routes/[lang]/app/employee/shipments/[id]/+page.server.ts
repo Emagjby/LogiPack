@@ -2,6 +2,7 @@ import type { PageServerLoad } from "./$types";
 import { error } from "@sveltejs/kit";
 import type { ShipmentStatus } from "$lib/domain/shipmentStatus";
 import type { StrataPackage } from "$lib/domain/strataPackage";
+import { seededIndex } from "$lib/server/mockUtils";
 
 // ── Data contracts ──────────────────────────────────────────────────
 
@@ -67,15 +68,6 @@ const MOCK_ACTORS = [
 	"user-georgi-dimitrov",
 	null,
 ];
-
-function seededIndex(id: string, max: number): number {
-	let hash = 0;
-	for (let i = 0; i < id.length; i++) {
-		hash = (hash << 5) - hash + id.charCodeAt(i);
-		hash |= 0;
-	}
-	return Math.abs(hash) % max;
-}
 
 /** Produce a deterministic hex hash from seed string. */
 function mockHash(seed: string): string {
@@ -268,7 +260,7 @@ export const load: PageServerLoad = async ({ parent, params }) => {
 
 	// Role guard: admin should not access employee pages
 	if (session?.role === "admin") {
-		throw error(403, "This page is only accessible to employees.");
+		throw error(403, "error.details.employee_only");
 	}
 
 	const id = params.id;

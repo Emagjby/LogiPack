@@ -51,6 +51,12 @@
 	let pageTitleSegment = $derived(
 		segments.length === 0 ? null : segments[segments.length - 1],
 	);
+	let normalizedPageTitleSegment = $derived.by(() => {
+		if (segments.length >= 2 && segments[segments.length - 1]?.toLowerCase() === "new") {
+			return segments[segments.length - 2]?.toLowerCase() ?? pageTitleSegment;
+		}
+		return pageTitleSegment;
+	});
 
 	let userEmail = $derived(session?.email ?? "user@unknown");
 	let userName = $derived(session?.name ?? "User");
@@ -132,10 +138,10 @@
 	<!-- Left side: Page title -->
 	<div class="flex flex-col justify-center min-w-0">
 		<h1 class="text-sm font-semibold text-surface-50 truncate">
-			{#if pageTitleSegment === null}
+			{#if normalizedPageTitleSegment === null}
 				{$_("navbar.page.overview")}
 			{:else}
-				{getSegmentLabel(pageTitleSegment)}
+				{getSegmentLabel(normalizedPageTitleSegment)}
 			{/if}
 		</h1>
 	</div>

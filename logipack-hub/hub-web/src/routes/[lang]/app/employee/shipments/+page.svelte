@@ -384,7 +384,7 @@
 												e.stopPropagation();
 												copyShipmentId(shipment.id);
 											}}
-											class="rounded-md bg-surface-800 px-1.5 py-1 text-[11px] font-medium text-surface-300 transition-colors hover:bg-surface-700"
+											class="rounded-md bg-surface-800 px-1.5 py-1 text-[11px] font-medium text-surface-400 transition-colors hover:bg-surface-700"
 											title={$_("shipments.copy_id")}
 											aria-label={$_("shipments.copy_id")}
 										>
