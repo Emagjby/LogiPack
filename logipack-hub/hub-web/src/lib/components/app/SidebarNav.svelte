@@ -106,7 +106,7 @@
 							"h-[18px] w-[18px] shrink-0",
 							active
 								? "text-accent"
-								: "text-surface-500 group-hover:text-surface-300",
+								: "text-surface-500 group-hover:text-surface-400",
 						]}
 						viewBox="0 0 20 20"
 						fill="none"
@@ -124,7 +124,7 @@
 							"h-[18px] w-[18px] shrink-0",
 							active
 								? "text-accent"
-								: "text-surface-500 group-hover:text-surface-300",
+								: "text-surface-500 group-hover:text-surface-400",
 						]}
 						viewBox="0 0 20 20"
 						fill="none"

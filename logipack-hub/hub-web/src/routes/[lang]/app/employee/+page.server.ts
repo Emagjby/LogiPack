@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 	const { session } = await parent();
 
 	if (session?.role === "admin") {
-		throw error(403, "This page is only accessible to employees.");
+		throw error(403, "error.details.employee_only");
 	}
 
 	const now = new Date();

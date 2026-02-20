@@ -13,8 +13,11 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 
 	const hasValidRole = session?.role && VALID_ROLES.includes(session.role);
 	const isNoAccessRoute = /\/app\/no-access(\/|$)/.test(url.pathname);
+	const isAdminRoute = /\/app\/admin(\/|$)/.test(url.pathname);
 
-	if (!hasValidRole && !isNoAccessRoute) {
+	// Admin routes are guarded by `app/admin/+layout.server.ts`, so skip
+	// the generic no-access redirect for them.
+	if (!hasValidRole && !isNoAccessRoute && !isAdminRoute) {
 		throw redirect(302, `/${url.pathname.split("/")[1] ?? "en"}/app/no-access`);
 	}
 
