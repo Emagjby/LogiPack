@@ -22,8 +22,14 @@
 	}
 
 	const segmentLabelKeys: Record<string, string> = {
+		admin: "navbar.page.dashboard",
 		employee: "navbar.page.dashboard",
 		shipments: "navbar.page.shipments",
+		profile: "navbar.page.profile",
+		clients: "navbar.page.clients",
+		offices: "navbar.page.offices",
+		employees: "navbar.page.employees",
+		audit: "navbar.page.audit_log",
 	};
 
 	const roleLabelKeys: Record<string, string> = {

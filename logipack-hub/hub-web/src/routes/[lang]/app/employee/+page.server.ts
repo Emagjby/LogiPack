@@ -2,6 +2,7 @@ import type { PageServerLoad } from "./$types";
 import { error } from "@sveltejs/kit";
 import { _ } from "svelte-i18n";
 import { get } from "svelte/store";
+import { resolveEmployeeOffice } from "$lib/server/employeeOffice";
 
 function f(key: string, vars?: Record<string, any>): string {
 	return get(_)(key, vars);
@@ -15,8 +16,11 @@ export const load: PageServerLoad = async ({ parent }) => {
 	}
 
 	const now = new Date();
+	const office = resolveEmployeeOffice(session);
+	const canCreateShipment = Boolean(office.id);
 
 	return {
+		canCreateShipment,
 		today: now.toISOString(),
 		lastRefresh: now.toISOString(),
 		greeting: getGreeting(session?.name ?? "there"),

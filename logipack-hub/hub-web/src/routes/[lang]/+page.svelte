@@ -3,36 +3,11 @@
 	import { ago } from "$lib/time";
 	import { _, locale } from "svelte-i18n";
 	import { page } from "$app/stores";
-	import flagGB from "flagpack-core/svg/m/GB-UKM.svg";
-	import flagBG from "flagpack-core/svg/m/BG.svg";
+	import LanguageFlagDropdown from "$lib/components/app/LanguageFlagDropdown.svelte";
 
 	let { data }: PageProps = $props();
 
-	const LOCALES = [
-		{ code: "en", flag: flagGB, label: "English" },
-		{ code: "bg", flag: flagBG, label: "Bulgarian" },
-	] as const;
-
-	let dropdownOpen = $state(false);
-
 	const currentLang = $derived($locale ?? $page.params.lang ?? "en");
-	const currentLocale = $derived(
-		LOCALES.find((l) => l.code === currentLang) ?? LOCALES[0],
-	);
-
-	function handleSelect(lang: string) {
-		dropdownOpen = false;
-		if (lang !== currentLang) {
-			window.location.href = `/${lang}`;
-		}
-	}
-
-	function handleClickOutside(e: MouseEvent) {
-		const target = e.target as HTMLElement;
-		if (!target.closest("[data-lang-dropdown]")) {
-			dropdownOpen = false;
-		}
-	}
 
 	const principles = $derived([
 		$_("principles.append_only_timeline"),
@@ -167,8 +142,6 @@
 	{/if}
 {/snippet}
 
-<svelte:window onclick={handleClickOutside} />
-
 <!-- Topbar -->
 <header class="fixed top-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] z-50">
 	<nav
@@ -184,67 +157,7 @@
 			<span class="text-lg font-bold text-surface-50">LogiPack</span>
 		</div>
 		<div class="flex items-center gap-3">
-			<!-- Language dropdown -->
-			<div class="relative" data-lang-dropdown>
-				<button
-					type="button"
-					aria-label="Change language"
-					aria-expanded={dropdownOpen}
-					aria-haspopup="listbox"
-					class="cursor-pointer flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-2 text-sm font-medium text-surface-400 transition-colors duration-200 hover:border-white/20 hover:text-surface-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950"
-					onclick={() => (dropdownOpen = !dropdownOpen)}
-				>
-					<img
-						src={currentLocale.flag}
-						alt={currentLocale.label}
-						class="h-4 w-5 rounded-sm object-cover"
-					/>
-					<svg
-						class="h-3.5 w-3.5 text-surface-400 transition-transform duration-200 {dropdownOpen
-							? 'rotate-180'
-							: ''}"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<polyline points="6 9 12 15 18 9" />
-					</svg>
-				</button>
-
-				{#if dropdownOpen}
-					<ul
-						role="listbox"
-						aria-label="Select language"
-						class="absolute right-0 mt-1.5 min-w-[8rem] overflow-hidden rounded-lg border border-white/10 bg-surface-900/95 py-1 shadow-xl shadow-black/20 backdrop-blur-md"
-					>
-						{#each LOCALES as loc (loc.code)}
-							<li
-								role="option"
-								aria-selected={loc.code === currentLang}
-							>
-								<button
-									type="button"
-									class="cursor-pointer flex w-full items-center gap-2.5 px-3 py-1.5 text-sm transition-colors duration-150 {loc.code ===
-									currentLang
-										? 'text-accent font-medium'
-										: 'text-surface-200 hover:bg-white/5 hover:text-surface-50'}"
-									onclick={() => handleSelect(loc.code)}
-								>
-									<img
-										src={loc.flag}
-										alt={loc.label}
-										class="h-4 w-5 rounded-sm object-cover"
-									/>
-									{loc.label}
-								</button>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</div>
+			<LanguageFlagDropdown pathname={$page.url.pathname} lang={currentLang} />
 
 			<a
 				href={data.loginUrl}
