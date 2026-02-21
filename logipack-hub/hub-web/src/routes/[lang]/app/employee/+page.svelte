@@ -110,13 +110,14 @@
 		>
 			{$_("empd.view_shipments")}
 		</a>
-		<button
-			disabled
-			title="Coming soon"
-			class="cursor-not-allowed rounded-lg bg-surface-800 px-4 py-2 text-sm font-medium text-surface-400"
-		>
-			{$_("empd.create_shipment")}
-		</button>
+		{#if data.canCreateShipment}
+			<a
+				href={`/${lang}/app/employee/shipments/new`}
+				class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-surface-950 transition-colors hover:bg-accent-hover"
+			>
+				{$_("empd.create_shipment")}
+			</a>
+		{/if}
 		<button
 			onclick={handleRefresh}
 			aria-label="Refresh"

@@ -1,57 +1,132 @@
 <script lang="ts">
 	import { _ } from "svelte-i18n";
+	import LanguageSwitcher from "$lib/components/app/LanguageSwitcher.svelte";
+	import NavItemIcon from "$lib/components/app/NavItemIcon.svelte";
 
 	let { pathname, lang }: { pathname: string; lang: string } = $props();
-	const locales = [
-		{ code: "en", labelKey: "navbar.locale_en" },
-		{ code: "bg", labelKey: "navbar.locale_bg" },
-	] as const;
-
-	type Locale = (typeof locales)[number]["code"];
+	type IconName =
+		| "dashboard"
+		| "shipments"
+		| "clients"
+		| "offices"
+		| "employees"
+		| "audit";
+	type MatchMode = "exact" | "prefix";
 
 	interface NavItem {
 		labelKey: string;
 		href: string;
-		icon: "dashboard" | "shipments";
+		icon: IconName;
+		match: MatchMode;
 	}
 
-	const navItems: NavItem[] = $derived([
-		{
-			labelKey: "navbar.item.dashboard",
-			href: `/${lang}/app/employee`,
-			icon: "dashboard" as const,
-		},
-		{
-			labelKey: "navbar.item.shipments",
-			href: `/${lang}/app/employee/shipments`,
-			icon: "shipments" as const,
-		},
-	]);
+	interface NavSection {
+		labelKey: string;
+		items: NavItem[];
+	}
 
-	function isActive(href: string): boolean {
+	function trimTrailingSlash(path: string): string {
+		if (path.length <= 1) return path;
+		return path.replace(/\/+$/, "");
+	}
+
+	let normalizedPathname = $derived(trimTrailingSlash(pathname));
+	let adminBase = $derived(`/${lang}/app/admin`);
+	let employeeBase = $derived(`/${lang}/app/employee`);
+	let employeeProfileHref = $derived(`${employeeBase}/profile`);
+	let isAdminConsole = $derived(
+		normalizedPathname === adminBase ||
+			normalizedPathname.startsWith(`${adminBase}/`),
+	);
+	let isEmployeeProfileActive = $derived(
+		normalizedPathname === employeeProfileHref ||
+			normalizedPathname.startsWith(`${employeeProfileHref}/`),
+	);
+
+	const navSections: NavSection[] = $derived.by(() => {
+		if (isAdminConsole) {
+			return [
+				{
+					labelKey: "navbar.section.operations",
+					items: [
+						{
+							labelKey: "navbar.item.dashboard",
+							href: adminBase,
+							icon: "dashboard",
+							match: "exact",
+						},
+						{
+							labelKey: "navbar.item.shipments",
+							href: `${adminBase}/shipments`,
+							icon: "shipments",
+							match: "prefix",
+						},
+					],
+				},
+				{
+					labelKey: "navbar.section.administration",
+					items: [
+						{
+							labelKey: "navbar.item.clients",
+							href: `${adminBase}/clients`,
+							icon: "clients",
+							match: "prefix",
+						},
+						{
+							labelKey: "navbar.item.offices",
+							href: `${adminBase}/offices`,
+							icon: "offices",
+							match: "prefix",
+						},
+						{
+							labelKey: "navbar.item.employees",
+							href: `${adminBase}/employees`,
+							icon: "employees",
+							match: "prefix",
+						},
+						{
+							labelKey: "navbar.item.audit_log",
+							href: `${adminBase}/audit`,
+							icon: "audit",
+							match: "prefix",
+						},
+					],
+				},
+			];
+		}
+
+		return [
+			{
+				labelKey: "navbar.section.operations",
+				items: [
+					{
+						labelKey: "navbar.item.dashboard",
+						href: employeeBase,
+						icon: "dashboard",
+						match: "exact",
+					},
+					{
+						labelKey: "navbar.item.shipments",
+						href: `${employeeBase}/shipments`,
+						icon: "shipments",
+						match: "prefix",
+					},
+				],
+			},
+		];
+	});
+
+	function isActive(item: NavItem): boolean {
+		const targetPath = trimTrailingSlash(item.href);
+		if (item.match === "exact") {
+			return normalizedPathname === targetPath;
+		}
 		return (
-			pathname === href ||
-			(href !== `/${lang}/app/employee` && pathname.startsWith(href))
+			normalizedPathname === targetPath ||
+			normalizedPathname.startsWith(`${targetPath}/`)
 		);
 	}
 
-	function changeLanguage(nextLang: Locale): void {
-		if (nextLang === lang) return;
-
-		const secure = window.location.protocol === "https:" ? "; secure" : "";
-		document.cookie = `lang=${nextLang}; path=/; max-age=31536000; samesite=lax${secure}`;
-
-		const localePattern = locales
-			.map((locale) =>
-				locale.code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-			)
-			.join("|");
-		const nextPath = pathname.replace(
-			new RegExp(`^/(${localePattern})(?=/|$)`),
-			`/${nextLang}`,
-		);
-		window.location.href = `${nextPath}${window.location.search}`;
-	}
 </script>
 
 <aside
@@ -76,96 +151,72 @@
 
 	<!-- Navigation section -->
 	<nav class="flex-1 overflow-y-auto px-3 py-4">
-		<span
-			class="mb-2 block px-3 text-[10px] font-medium uppercase tracking-widest text-surface-600"
-		>
-			{$_("navbar.section.operations")}
-		</span>
+		{#each navSections as section, sectionIndex (section.labelKey)}
+			<div class={sectionIndex === navSections.length - 1 ? "mb-0" : "mb-5"}>
+				<span
+					class="mb-2 block px-3 text-[10px] font-medium uppercase tracking-widest text-surface-600"
+				>
+					{$_(section.labelKey)}
+				</span>
 
-		{#each navItems as item (item.href)}
-			{@const active = isActive(item.href)}
-			<a
-				href={item.href}
-				class={[
-					"group relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
-					"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-900",
-					active
-						? "bg-surface-800/80 text-surface-50"
-						: "text-surface-400 hover:bg-surface-800/40 hover:text-surface-200",
-				]}
-			>
-				{#if active}
-					<div
-						class="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent"
-					></div>
-				{/if}
+				<div class="space-y-1">
+					{#each section.items as item (item.href)}
+						{@const active = isActive(item)}
+						<a
+							href={item.href}
+							class={[
+								"group relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
+								"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-900",
+								active
+									? "bg-surface-800/80 text-surface-50"
+									: "text-surface-400 hover:bg-surface-800/40 hover:text-surface-200",
+							]}
+						>
+							{#if active}
+								<div
+									class="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent"
+								></div>
+							{/if}
 
-				{#if item.icon === "dashboard"}
-					<svg
-						class={[
-							"h-[18px] w-[18px] shrink-0",
-							active
-								? "text-accent"
-								: "text-surface-500 group-hover:text-surface-400",
-						]}
-						viewBox="0 0 20 20"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-					>
-						<rect x="3" y="3" width="6" height="6" rx="1" />
-						<rect x="11" y="3" width="6" height="6" rx="1" />
-						<rect x="3" y="11" width="6" height="6" rx="1" />
-						<rect x="11" y="11" width="6" height="6" rx="1" />
-					</svg>
-				{:else if item.icon === "shipments"}
-					<svg
-						class={[
-							"h-[18px] w-[18px] shrink-0",
-							active
-								? "text-accent"
-								: "text-surface-500 group-hover:text-surface-400",
-						]}
-						viewBox="0 0 20 20"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-					>
-						<path d="M3 7l7-4 7 4v6l-7 4-7-4V7z" />
-						<path d="M3 7l7 4m0 0l7-4m-7 4v7" />
-					</svg>
-				{/if}
+							<NavItemIcon name={item.icon} {active} />
 
-				<span>{$_(item.labelKey)}</span>
-			</a>
+							<span>{$_(item.labelKey)}</span>
+						</a>
+					{/each}
+				</div>
+			</div>
 		{/each}
 	</nav>
 
 	<!-- Bottom section -->
 	<div class="mt-auto px-3 py-3">
-		<div class="rounded-lg border border-surface-800 bg-surface-900/40 px-2.5 py-2">
-			<span class="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-surface-600">
-				{$_("navbar.language")}
+		{#if isAdminConsole}
+			<LanguageSwitcher {pathname} {lang} />
+		{:else}
+			<span
+				class="mb-2 block px-3 text-[10px] font-medium uppercase tracking-widest text-surface-600"
+			>
+				{$_("navbar.section.account")}
 			</span>
-			<div class="grid grid-cols-2 gap-1.5">
-				{#each locales as locale (locale.code)}
-					<button
-						type="button"
-						onclick={() => changeLanguage(locale.code)}
-						class={[
-							"cursor-pointer rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50",
-							lang === locale.code
-								? "bg-surface-700 text-surface-100"
-								: "bg-surface-800/70 text-surface-400 hover:bg-surface-800 hover:text-surface-200",
-						]}
-						aria-label={$_(locale.labelKey)}
-						aria-pressed={lang === locale.code}
-					>
-						{$_(locale.labelKey)}
-					</button>
-				{/each}
-			</div>
-		</div>
+			<a
+				href={employeeProfileHref}
+				class={[
+					"group relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
+					"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-900",
+					isEmployeeProfileActive
+						? "bg-surface-800/80 text-surface-50"
+						: "text-surface-400 hover:bg-surface-800/40 hover:text-surface-200",
+				]}
+			>
+				{#if isEmployeeProfileActive}
+					<div
+						class="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent"
+					></div>
+				{/if}
+				<NavItemIcon name="profile" active={isEmployeeProfileActive} />
+				<span>{$_("navbar.item.profile")}</span>
+			</a>
+		{/if}
 		<span class="mt-2 block px-2 text-[10px] text-surface-700">v0.1.0</span>
 	</div>
 </aside>
