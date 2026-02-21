@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Building2 from "@lucide/svelte/icons/building-2";
+	import ClipboardCheck from "@lucide/svelte/icons/clipboard-check";
+
 	type IconName =
 		| "dashboard"
 		| "shipments"
@@ -16,10 +19,12 @@
 		active?: boolean;
 	} = $props();
 
-	let iconClass = $derived([
-		"h-[18px] w-[18px] shrink-0",
-		active ? "text-accent" : "text-surface-600 group-hover:text-surface-400",
-	]);
+	let iconClass = $derived(
+		[
+			"h-[18px] w-[18px] shrink-0",
+			active ? "text-accent" : "text-surface-600 group-hover:text-surface-400",
+		].join(" "),
+	);
 </script>
 
 {#if name === "dashboard"}
@@ -60,22 +65,12 @@
 		<path d="M4 16a6 6 0 0112 0" />
 	</svg>
 {:else if name === "offices"}
-	<svg
+	<!-- size=18 is explicit; strokeWidth 1.7 intentionally matches visual weight of inline 1.5 SVG icons. -->
+	<Building2
 		class={iconClass}
-		viewBox="0 0 20 20"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.5"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-	>
-		<path d="M4 17h12" />
-		<path d="M6 17V5h8v12" />
-		<rect x="8" y="8" width="1.5" height="1.5" rx="0.3" />
-		<rect x="10.5" y="8" width="1.5" height="1.5" rx="0.3" />
-		<rect x="8" y="11" width="1.5" height="1.5" rx="0.3" />
-		<rect x="10.5" y="11" width="1.5" height="1.5" rx="0.3" />
-	</svg>
+		size={18}
+		strokeWidth={1.7}
+	/>
 {:else if name === "employees"}
 	<svg
 		class={iconClass}
@@ -92,21 +87,12 @@
 		<path d="M11 16a3.2 3.2 0 016.4 0" />
 	</svg>
 {:else if name === "audit"}
-	<svg
+	<!-- size=18 is explicit; strokeWidth 1.7 intentionally matches visual weight of inline 1.5 SVG icons. -->
+	<ClipboardCheck
 		class={iconClass}
-		viewBox="0 0 20 20"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.5"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-	>
-		<rect x="4" y="3" width="12" height="14" rx="2" />
-		<path d="M7 7h6" />
-		<path d="M7 10h6" />
-		<path d="M7 13h3" />
-		<path d="M12.5 13.5l1 1 2-2" />
-	</svg>
+		size={18}
+		strokeWidth={1.7}
+	/>
 {:else}
 	<svg
 		class={iconClass}

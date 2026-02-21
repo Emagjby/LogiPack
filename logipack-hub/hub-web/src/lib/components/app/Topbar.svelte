@@ -79,10 +79,16 @@
 	let isShipmentsListPage = $derived(
 		/^\/[^/]+\/app\/employee\/shipments\/?$/.test(pathname),
 	);
+	let isAdminOfficesListPage = $derived(
+		/^\/[^/]+\/app\/admin\/offices\/?$/.test(pathname),
+	);
+	let isSearchEnabled = $derived(
+		isShipmentsListPage || isAdminOfficesListPage,
+	);
 	let querySearchValue = $derived(page.url.searchParams.get("q") ?? "");
 
 	$effect(() => {
-		if (!isShipmentsListPage) {
+		if (!isSearchEnabled) {
 			searchValue = "";
 			return;
 		}
@@ -108,9 +114,9 @@
 		window.location.href = `/logout`;
 	}
 
-	function updateShipmentsSearch(next: string) {
+	function updateTopbarSearch(next: string) {
 		searchValue = next;
-		if (!isShipmentsListPage) return;
+		if (!isSearchEnabled) return;
 		if (searchTimer) clearTimeout(searchTimer);
 		searchTimer = setTimeout(async () => {
 			const url = new URL(page.url);
@@ -176,13 +182,15 @@
 					isSearchFocused = false;
 				}}
 				oninput={(e) =>
-					updateShipmentsSearch((e.currentTarget as HTMLInputElement).value)}
+					updateTopbarSearch((e.currentTarget as HTMLInputElement).value)}
 				placeholder={
-					isShipmentsListPage
+					isAdminOfficesListPage
+						? $_("admin.offices.search_placeholder")
+						: isShipmentsListPage
 						? $_("shipments.search_placeholder")
 						: $_("navbar.search_placeholder")
 				}
-				disabled={!isShipmentsListPage}
+				disabled={!isSearchEnabled}
 				class="h-8 w-44 rounded-md border border-surface-700/50 bg-surface-800/50 pl-8 pr-3 text-xs text-surface-400 placeholder:text-surface-600 focus:outline-none disabled:cursor-not-allowed"
 			/>
 		</div>
