@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { _ } from "svelte-i18n";
-	import LanguageSwitcher from "$lib/components/app/LanguageSwitcher.svelte";
 	import NavItemIcon from "$lib/components/app/NavItemIcon.svelte";
 
 	let { pathname, lang }: { pathname: string; lang: string } = $props();
@@ -33,14 +32,25 @@
 	let normalizedPathname = $derived(trimTrailingSlash(pathname));
 	let adminBase = $derived(`/${lang}/app/admin`);
 	let employeeBase = $derived(`/${lang}/app/employee`);
+	let adminProfileHref = $derived(`${adminBase}/profile`);
 	let employeeProfileHref = $derived(`${employeeBase}/profile`);
 	let isAdminConsole = $derived(
 		normalizedPathname === adminBase ||
 			normalizedPathname.startsWith(`${adminBase}/`),
 	);
+	let isAdminProfileActive = $derived(
+		normalizedPathname === adminProfileHref ||
+			normalizedPathname.startsWith(`${adminProfileHref}/`),
+	);
 	let isEmployeeProfileActive = $derived(
 		normalizedPathname === employeeProfileHref ||
 			normalizedPathname.startsWith(`${employeeProfileHref}/`),
+	);
+	let profileHref = $derived(
+		isAdminConsole ? adminProfileHref : employeeProfileHref,
+	);
+	let isProfileActive = $derived(
+		isAdminConsole ? isAdminProfileActive : isEmployeeProfileActive,
 	);
 
 	const navSections: NavSection[] = $derived.by(() => {
@@ -190,33 +200,29 @@
 
 	<!-- Bottom section -->
 	<div class="mt-auto px-3 py-3">
-		{#if isAdminConsole}
-			<LanguageSwitcher {pathname} {lang} />
-		{:else}
-			<span
-				class="mb-2 block px-3 text-[10px] font-medium uppercase tracking-widest text-surface-600"
-			>
-				{$_("navbar.section.account")}
-			</span>
-			<a
-				href={employeeProfileHref}
-				class={[
-					"group relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
-					"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-900",
-					isEmployeeProfileActive
-						? "bg-surface-800/80 text-surface-50"
-						: "text-surface-400 hover:bg-surface-800/40 hover:text-surface-200",
-				]}
-			>
-				{#if isEmployeeProfileActive}
-					<div
-						class="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent"
-					></div>
-				{/if}
-				<NavItemIcon name="profile" active={isEmployeeProfileActive} />
-				<span>{$_("navbar.item.profile")}</span>
-			</a>
-		{/if}
+		<span
+			class="mb-2 block px-3 text-[10px] font-medium uppercase tracking-widest text-surface-600"
+		>
+			{$_("navbar.section.account")}
+		</span>
+		<a
+			href={profileHref}
+			class={[
+				"group relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
+				"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-900",
+				isProfileActive
+					? "bg-surface-800/80 text-surface-50"
+					: "text-surface-400 hover:bg-surface-800/40 hover:text-surface-200",
+			]}
+		>
+			{#if isProfileActive}
+				<div
+					class="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent"
+				></div>
+			{/if}
+			<NavItemIcon name="profile" active={isProfileActive} />
+			<span>{$_("navbar.item.profile")}</span>
+		</a>
 		<span class="mt-2 block px-2 text-[10px] text-surface-700">v0.1.0</span>
 	</div>
 </aside>

@@ -229,26 +229,3 @@
 		</div>
 	</form>
 </section>
-
-<style>
-	@keyframes fadeSlideUp {
-		from {
-			opacity: 0;
-			transform: translateY(8px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	.stagger {
-		animation: fadeSlideUp 0.4s ease-out both;
-	}
-	.stagger-1 {
-		animation-delay: 0.05s;
-	}
-	.stagger-2 {
-		animation-delay: 0.1s;
-	}
-</style>
